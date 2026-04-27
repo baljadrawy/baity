@@ -3,6 +3,7 @@
     "save": "حفظ",
     "cancel": "إلغاء",
     "delete": "حذف",
+    "deletePrompt": "حذف \"{name}\"؟",
     "edit": "تعديل",
     "add": "إضافة",
     "loading": "جاري التحميل...",

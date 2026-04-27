@@ -16,6 +16,16 @@ import { ApplianceForm } from '@/features/appliances/components/ApplianceForm';
 import type { ApplianceWithMeta } from '@/features/appliances/api/repository';
 import type { CreateApplianceInput } from '@/features/appliances/schemas';
 
+/**
+ * Prisma يُرجع `null` للحقول الاختيارية، لكن schema الفورم يستخدم `undefined`.
+ * هذه الدالة تُحوّل null → undefined لتُستخدم الكائن كـ defaultValues.
+ */
+function toFormDefaults(a: ApplianceWithMeta): Partial<CreateApplianceInput> {
+  return Object.fromEntries(
+    Object.entries(a).map(([k, v]) => [k, v === null ? undefined : v])
+  ) as Partial<CreateApplianceInput>;
+}
+
 export function AppliancesPageClient() {
   const t = useTranslations('appliances');
   const tc = useTranslations('common');
@@ -177,7 +187,7 @@ export function AppliancesPageClient() {
             <div className="p-5">
               <ApplianceForm
                 key={editing?.id ?? 'new'}
-                defaultValues={editing ?? undefined}
+                defaultValues={editing ? toFormDefaults(editing) : undefined}
                 onSubmit={editing ? handleUpdate : handleCreate}
                 onCancel={() => { setShowForm(false); setEditing(null); }}
                 isLoading={createMutation.isPending || updateMutation.isPending}
@@ -194,7 +204,7 @@ export function AppliancesPageClient() {
           <div className="relative z-10 w-full max-w-sm bg-background rounded-2xl shadow-2xl p-6 space-y-4">
             <p className="font-bold text-lg">{tc('confirm')}</p>
             <p className="text-sm text-muted-foreground">
-              {tc('delete')} &ldquo;{deleteTarget.name}&rdquo;؟
+              {tc('deletePrompt', { name: deleteTarget.name })}
             </p>
             <div className="flex gap-3">
               <button

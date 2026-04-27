@@ -4,7 +4,8 @@
  * بعد الدفع: إذا كانت الفاتورة متكررة → تُولَّد نسخة جديدة تلقائياً
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { authenticate } from '@/core/auth/authenticate';
 import { withHousehold, handleApiError } from '@/core/db/with-household';
 import { BillsRepository } from '@/features/bills/api/repository';
@@ -12,12 +13,13 @@ import { payBillSchema } from '@/features/bills/schemas';
 import { rateLimits, getClientIp } from '@/core/security/rate-limit';
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req.headers);
     const { success } = rateLimits.api(ip);
     if (!success) return NextResponse.json({ error: 'طلبات كثيرة' }, { status: 429 });
 
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     return await withHousehold(session.userId, session.householdId, async () => {
       const repo = new BillsRepository(session.householdId);
 
-      const existing = await repo.findById(params.id);
+      const existing = await repo.findById(id);
       if (!existing) {
         return NextResponse.json({ error: 'الفاتورة غير موجودة' }, { status: 404 });
       }
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         return NextResponse.json({ error: 'الفاتورة مدفوعة بالفعل' }, { status: 409 });
       }
 
-      const paid = await repo.pay(params.id, data);
+      const paid = await repo.pay(id, data);
 
       // إذا كانت الفاتورة متكررة → أنشئ الفاتورة التالية تلقائياً
       let nextBill = null;

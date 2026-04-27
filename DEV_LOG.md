@@ -1201,3 +1201,149 @@ src/
 - **HEALTHCHECK في Dockerfile + /api/health** — نقطة فحص واحدة تخدم Docker وCaddy والـ monitoring
 - **non-root user في Docker** — أساسي للأمان، لا container يعمل بـ root في الإنتاج
 
+
+---
+
+## 📅 2026-04-28 (الثلاثاء) — اليوم 7، الأسبوع 2
+
+**المرحلة:** الأسبوع 2 — اليوم 7 (Lint Cleanup + Deployment Fixes)
+**الحالة:** 🔧 جارٍ
+
+### ✅ ما أنجزته (الجولة 1: تنظيف ESLint)
+
+تم اكتشاف **47+ خطأ ESLint** يمنع البناء (بعد `npm ci --omit=dev --ignore-scripts` وإضافة `index.ts` لـ core/db). معالجة شاملة بدون تخطّي القواعد:
+
+#### حذف الاستيرادات والمتغيرات غير المستخدمة (28 إصلاحاً)
+- `src/app/[locale]/(web)/settings/page.tsx` — حذف `useLocale`
+- `src/features/bills/components/BillsList.tsx` — حذف `useTransition`, `Filter`, `usePayBill`, ومتغير `deleteBill`
+- `src/features/bills/components/BillForm.tsx` — حذف `Controller` (غير مستعمل)، `SERVICE_PROVIDERS`, `CATEGORY_COLORS`, `BillWithMeta`, `te`, `setValue`
+- `src/features/bills/api/repository.ts` — حذف query `dueCount` (غير مرجع)، توفير DB query
+- `src/features/bills/schemas/index.ts` — حذف `decimalString` و import `convertToWesternDigits` غير المستخدم
+- `src/features/chores/components/ChoreCard.tsx` — حذف `Clock`, `ChevronLeft`
+- `src/features/chores/components/ChoreForm.tsx` — حذف `Controller`, `control`
+- `src/features/chores/components/ChoresLeaderboard.tsx` — حذف `medals`
+- `src/features/chores/components/ChoresList.tsx` — تبسيط `useDeleteChore()`
+- `src/features/chores/components/ExecuteChoreDialog.tsx` — حذف `errors`
+- `src/features/chores/lib/__tests__/period-engine.test.ts` — حذف `beforeEach`
+- `src/features/appliances/components/ApplianceCard.tsx` — حذف `t`
+- `src/features/appliances/components/ApplianceForm.tsx` — حذف helper `field`
+- `src/features/house-economy/components/PendingApprovalCard.tsx` — حذف `tc`
+- `src/features/house-economy/components/WalletCard.tsx` — حذف `cn`
+- `src/features/shopping/api/repository.ts` — `addedById` → `_addedById` (parameter unused)
+- `src/features/shopping/hooks/useShopping.ts` — حذف `UpdateShoppingItemInput`
+
+#### استبدال `any` بأنواع صحيحة (10 إصلاحات)
+- `HouseEconomyPageClient.tsx` — 5 `any` → استخدام `PendingInstance`, `WalletSummary`, `ChildWalletWithDetails` (تصدير `PendingInstance` من `PendingApprovalCard.tsx`)
+- `ShoppingPageClient.tsx` — `any` في onSuccess → narrowing ضمن callback
+- `appliances/api/repository.ts` — `_addMeta(appliance: any)` → `Appliance & { schedules?: ...; _count?: ... }`
+- `house-economy/api/repository.ts` — `status as any` → `Prisma.JobInstanceWhereInput['status']` مع import للـ `Prisma`
+- `ApplianceForm.tsx` — `register(key as any)` → array `as const` يستنبط النوع تلقائياً
+
+#### القواعد المخصصة في المشروع (10 إصلاحات)
+- **`AppliancesPageClient.tsx`** — نص عربي حرفي (`؟`) في JSX → مفتاح ترجمة جديد `common.deletePrompt` مع `{name}` (أُضيف لـ `ar.json` و `en.json`)
+- **`format-number.test.ts`** — 9 أخطاء أرقام هندية/فارسية في **مدخلات اختبار** لدوال التحويل نفسها → استثناء واعٍ مَحصور بـ `/* eslint-disable no-restricted-syntax */` على ملف الاختبار فقط، مع توثيق السبب في رأس الملف
+
+#### استبدال `<img>` بـ `next/image` (تطبيق قاعدة CLAUDE.md)
+- `PendingApprovalCard.tsx` — حذف `eslint-disable @next/next/no-img-element`، استخدام `<Image>` مع `fill + sizes` للـ responsive
+
+### 📊 النتيجة
+- ESLint: 47 خطأ → **0 خطأ** (exit 0)
+- لم يُتجاوز أي قاعدة من القواعد الذهبية في الإنتاج
+- استثناء وحيد موثَّق ومحصور: ملف اختبار التحويل نفسه
+
+### 🏛️ قرارات معمارية
+- **تصدير `PendingInstance`** من `PendingApprovalCard.tsx` بدلاً من تكرار التعريف — مصدر حقيقة واحد
+- **تشديد التايب في `_addMeta`** يعكس فعلياً ما تُرجعه Prisma include — منع `any` بصيغة عاجزة
+- **مفتاح ترجمة بـ parameter** (`deletePrompt: "حذف \"{name}\"؟"`) — يحترم قاعدة "لا نصوص حرفية في JSX"
+
+### ✅ ما أنجزته (الجولة 2: إصلاح أخطاء TypeScript للنشر)
+
+بعد تنظيف ESLint، فشل بناء Next.js عند فحص TS بأخطاء حقيقية تكشف عدم اتساق بين الكود وschema الـ Prisma وتحديثات Next 15.
+
+#### Next.js 15 Async params (15+ ملف API + صفحتين)
+كل route handler ديناميكي + `generateMetadata` يستخدم `params` كـ Promise:
+- `bills/page.tsx`, `chores/page.tsx` — تحويل `generateMetadata`
+- 16 ملف API routes — تحديث `interface Params { params: Promise<...> }` + إضافة `const { id/memberId/itemId } = await params;` في رأس كل handler + تبديل `params.X` بـ `X` (سكربت Python موحَّد للتطبيق المتسق)
+
+#### Headers vs NextRequest (26 موقع)
+`getClientIp()` يقبل `Headers` لكن الـ routes تمرّر `NextRequest`. تحويل سياقي: `getClientIp(req)` → `getClientIp(req.headers)` في 26 موضع.
+
+#### عدم اتساق schema/كود
+- **`shoppingItem.shoppingList`** → `list` (اسم الـ relation الصحيح في Prisma) في `dashboard/page.tsx` و `ShoppingWidget.tsx`
+- **`HouseholdMember.childWallet`** → `wallet` في `ChildWalletWidget.tsx`
+- **`HouseholdMember.createdAt`** → `joinedAt` (الحقل الصحيح في Prisma)
+- **`HouseholdMember.name`** → استبدال بـ `user: { select: { name } }` في `certificate/route.ts`
+- **`HouseholdMember.deletedAt`** → حذف (الحقل غير موجود في schema) من leaderboard
+- **`ChoreExecution.executedBy`** → `executedById` في leaderboard
+- **`User.telegramChatId`** → `Household.telegramChatId` (مكان الحقل الصحيح) في `warranty-check.ts`
+- **`ShoppingItemStatus`/`ShoppingListStatus`** — حذف types مستوردة غير موجودة في Prisma
+
+#### مشاكل TypeScript أخرى
+- **`authenticate.ts`**: تضييق `req instanceof Request` يحوّل NextRequest إلى never → استبدال بـ `'cookies' in req && typeof req.cookies?.get === 'function'`
+- **`server-session.ts`**: `redirect()` في `requireServerSession()` لا يُعرَّف كـ `never` → cast صريح `as Session`
+- **`PendingChoresWidget.tsx`**: `noUncheckedIndexedAccess` يجعل `assignedMemberIds[0]` ربما undefined → استخراج للمتغير قبل الفهرسة
+- **`useChores.ts`**: `ChoresResponse.data` كان `Chore[]` بدل `ChoreWithMeta[]` → تصحيح النوع
+- **`chores/schemas/index.ts`**: `.refine()` يحوّل ZodObject إلى ZodEffects ولا يدعم `.partial()` → استخراج الـ object الأصلي ثم `refine` عليه + استخدام الأصلي لـ `updateChoreSchema = createChoreObject.partial()`
+- **`AppliancesPageClient.tsx`**: Prisma `null` مقابل Form `undefined` → دالة `toFormDefaults()` تُحوّل null → undefined (مع توثيق)
+- **`test/setup.ts`**: `vi` غير معرّف → إضافة `import { vi } from 'vitest';`
+
+### 🏛️ قرارات معمارية
+- **Async params** — تطبيق نمط موحَّد عبر 16 ملف بسكربت لضمان الاتساق وتجنّب diff مبعثر
+- **`toFormDefaults()`** بدلاً من تعديل الـ Form schema ليقبل null — يحفظ تمييز "حقل مفقود" (undefined) من "تم محوه عمداً" (null) إن احتيج لاحقاً
+- **استخراج `createChoreObject`** كحلقة وسيطة — يحفظ refinement على الـ create ولكن يسمح بـ update partial نظيف
+
+### ✅ ما أنجزته (الجولة 3: إصلاح Build + النشر)
+
+#### مشكلة `typedRoutes` مع locale prefix
+- `next.config.ts` كان عليه `experimental.typedRoutes: true` — لا يتعامل مع `next-intl` middleware الذي يُضيف locale prefix ديناميكياً، فيرى `/bills` كـ route غير معرَّف لأن المعرَّف هو `/[locale]/bills`
+- **الحل**: تعطيل typedRoutes (`experimental: {}`) مع توثيق السبب
+- **بديل لاحقاً**: استخدام `Link` الـ localized من next-intl إن أردنا استرداد الميزة
+
+#### Schema → DB Push
+- `npx prisma db push --skip-generate` على شبكة `shared-db-network`
+- النتيجة: `🚀  Your database is now in sync with your Prisma schema. Done in 2.42s`
+- ملاحظة: لا توجد migrations في `prisma/migrations/` — الـ schema تُدفع مباشرة (مناسب للتطوير المبكر، لاحقاً نحتاج migrations فعلية)
+
+#### تشغيل الحاوية
+- `docker compose -f docker-compose.shared.yml up -d`
+- الحاوية متصلة بـ `shared-db-network` لتصل لـ `shared-postgres`
+- المنفذ: `3001:3000`
+- صورة نهائية: 399 MB
+
+### 📊 التحقق من النشر
+| Endpoint | النتيجة |
+|----------|---------|
+| `GET /` | 307 → `/ar` (locale middleware يعمل) |
+| `GET /ar` | 307 → `/ar/login` (auth gate يعمل) |
+| `GET /ar/login` | 200 (الصفحة تَرنْدَر) |
+| `GET /api/health` | 200 — `{"status":"healthy","checks":{"database":"ok"}}` |
+| Security headers | كل الـ headers من `next.config.ts` تُرسل (X-Frame-Options, CSP, إلخ) |
+
+### 🏛️ قرارات معمارية
+- **`db push` لا migrations** — قرار للمرحلة الحالية. التحول لـ `prisma migrate deploy` مع ملفات migration حقيقية مطلوب قبل أول release لـ production فعلي
+- **`network_mode: bridge` على `shared-db-network`** — يعزل التطبيق عن host network ويمنحه DNS للوصول لـ `shared-postgres` بالاسم
+- **port 3001** بدل 3000 — لأن `xsch-app` يستخدم 3000 على host network
+
+### 📝 ملاحظات للجولة القادمة
+- `package-lock.json` تم توليده محلياً (مالكه root من Docker) — يحتاج `chown pi:pi` ثم commit للـ repo
+- 23 ملف معدَّل محلياً غير مدفوع للـ GitHub بعد — يحتاج push ليلتزم به الـ team
+
+### 🩺 إصلاح الـ Healthcheck
+- الحاوية كانت `(unhealthy)` — السبب: `wget http://localhost:3000` فشل بـ "Connection refused"
+- التشخيص: `localhost` يحاول IPv6 (`::1`) أولاً داخل الحاوية، لكن Next يستمع على IPv4 (`0.0.0.0:3000`) فقط
+- الإصلاح في `docker-compose.shared.yml`: `localhost` → `127.0.0.1` (يتجاوز IPv6)
+- النتيجة: `Up (healthy)` بعد 35 ثانية
+
+### 🎯 الحالة النهائية لكل الحاويات (8)
+```
+baity-app         Up (healthy)        :3001->3000
+shared-postgres   Up (healthy)        :5434->5432
+agrismart-web     Up                  :9002->3000
+agrismart-bot     Up
+ajwaa-frontend    Up (healthy)        :80
+ajwaa-backend     Up                  :4000
+ajwaa-postgres    Up (healthy)        :5433->5432
+xsch-app          Up                  host network (3000)
+```
+
+**المشروع جاهز على:** http://192.168.100.64:3001 — يُعيد لـ `/ar/login` تلقائياً.

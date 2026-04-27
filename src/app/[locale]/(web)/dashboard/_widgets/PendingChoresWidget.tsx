@@ -60,9 +60,10 @@ export async function PendingChoresWidget() {
         const overdueDays = dueDate
           ? Math.round((now.getTime() - dueDate.getTime()) / 86400000)
           : 0;
+        const firstAssigneeId = chore.assignedMemberIds[0];
         const assigneeName =
-          chore.assignedMemberIds.length > 0
-            ? memberMap[chore.assignedMemberIds[0]] ?? t('anyMember')
+          firstAssigneeId !== undefined
+            ? memberMap[firstAssigneeId] ?? t('anyMember')
             : t('anyMember');
 
         return (

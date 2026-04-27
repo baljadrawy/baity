@@ -14,13 +14,11 @@ import { useShoppingLists, useCreateShoppingList, useDeleteShoppingList } from '
 import { ShoppingListCard } from '@/features/shopping/components/ShoppingListCard';
 import { ShoppingListDetail } from '@/features/shopping/components/ShoppingListDetail';
 import { PageLoader } from '@/shared/components/PageLoader';
-import { useFormat } from '@/shared/hooks/useFormat';
 import type { ShoppingListWithMeta } from '@/features/shopping/types';
 
 export function ShoppingPageClient() {
   const t = useTranslations('shopping');
   const tc = useTranslations('common');
-  const f = useFormat();
 
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [showNewListForm, setShowNewListForm] = useState(false);
@@ -38,7 +36,8 @@ export function ShoppingPageClient() {
     createList.mutate(
       { name: newListName.trim(), isShared: true },
       {
-        onSuccess: (res: any) => {
+        onSuccess: (data) => {
+          const res = data as { data?: { id?: string } } | undefined;
           setNewListName('');
           setShowNewListForm(false);
           setSelectedListId(res?.data?.id ?? null);

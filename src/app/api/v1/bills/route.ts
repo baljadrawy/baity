@@ -3,7 +3,8 @@
  * POST /api/v1/bills  — إنشاء فاتورة جديدة
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { authenticate } from '@/core/auth/authenticate';
 import { withHousehold } from '@/core/db/with-household';
 import { BillsRepository } from '@/features/bills/api/repository';
@@ -13,7 +14,7 @@ import { handleApiError } from '@/core/db/with-household';
 
 export async function GET(req: NextRequest) {
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req.headers);
     const { success } = rateLimits.api(ip);
     if (!success) {
       return NextResponse.json({ error: 'طلبات كثيرة، حاول لاحقاً' }, { status: 429 });
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req.headers);
     const { success } = rateLimits.api(ip);
     if (!success) {
       return NextResponse.json({ error: 'طلبات كثيرة، حاول لاحقاً' }, { status: 429 });

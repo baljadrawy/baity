@@ -4,6 +4,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
+    "deletePrompt": "Delete \"{name}\"?",
     "edit": "Edit",
     "add": "Add",
     "loading": "Loading...",

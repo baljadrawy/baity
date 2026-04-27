@@ -29,7 +29,7 @@ export function ExecuteChoreDialog({ chore, onClose }: ExecuteChoreDialogProps) 
 
   const executeChore = useExecuteChore(chore.id);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<ExecuteChoreInput>({
+  const { register, handleSubmit } = useForm<ExecuteChoreInput>({
     resolver: zodResolver(executeChoreSchema),
     defaultValues: {
       executedAt: new Date(),

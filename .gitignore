@@ -33,10 +33,15 @@ yarn-error.log*
 # env files — لا تضعها في Git أبداً
 .env
 .env.local
+.env.local.save
 .env.development.local
 .env.test.local
+.env.production
 .env.production.local
 # .env.local.example مسموح (لا secrets فيه)
+
+# نشر محلي على Pi (يحتوي على إعدادات خاصة بالـ host)
+docker-compose.shared.yml
 
 # vercel
 .vercel

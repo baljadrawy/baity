@@ -12,9 +12,10 @@ import { useTranslations } from 'next-intl';
 import { Briefcase, Clock, Wallet, Plus } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { JobMenuGrid } from '@/features/house-economy/components/JobMenuGrid';
-import { PendingApprovalCard } from '@/features/house-economy/components/PendingApprovalCard';
+import { PendingApprovalCard, type PendingInstance } from '@/features/house-economy/components/PendingApprovalCard';
 import { WalletCard } from '@/features/house-economy/components/WalletCard';
 import { JobForm } from '@/features/house-economy/components/JobForm';
+import type { WalletSummary, ChildWalletWithDetails } from '@/features/house-economy/types';
 import {
   usePendingApprovals,
   useWalletSummary,
@@ -72,8 +73,8 @@ export function HouseEconomyPageClient() {
   const { data: walletData, isLoading: walletLoading } = useWalletSummary();
   const createJob = useCreateJobMenuItem();
 
-  const pendingItems = (pendingData?.data ?? []) as any[];
-  const walletSummary = walletData as any;
+  const pendingItems = (pendingData?.data ?? []) as PendingInstance[];
+  const walletSummary = walletData as WalletSummary | undefined;
 
   const tabs: Array<{ id: Tab; label: string; icon: React.ElementType; badge?: number }> = [
     { id: 'jobs',    label: t('jobMenu'),  icon: Briefcase },
@@ -151,7 +152,7 @@ export function HouseEconomyPageClient() {
               <p className="mt-3 text-sm">{t('noPending')}</p>
             </div>
           ) : (
-            pendingItems.map((instance: any) => (
+            pendingItems.map((instance) => (
               <PendingApprovalCard key={instance.id} instance={instance} />
             ))
           )}
@@ -169,7 +170,7 @@ export function HouseEconomyPageClient() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {walletSummary.children.map((child: any) => (
+              {walletSummary.children.map((child) => (
                 <ChildWalletWrapper key={child.memberId} memberId={child.memberId} />
               ))}
             </div>
@@ -184,6 +185,7 @@ export function HouseEconomyPageClient() {
 function ChildWalletWrapper({ memberId }: { memberId: string }) {
   const { data, isLoading } = useChildWallet(memberId);
   if (isLoading) return <div className="h-52 rounded-3xl bg-muted animate-pulse" />;
-  if (!data?.data) return null;
-  return <WalletCard wallet={data.data as any} />;
+  const wallet = (data as { data?: ChildWalletWithDetails } | undefined)?.data;
+  if (!wallet) return null;
+  return <WalletCard wallet={wallet} />;
 }

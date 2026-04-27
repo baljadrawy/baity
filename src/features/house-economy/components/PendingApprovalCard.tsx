@@ -8,12 +8,13 @@
  */
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useFormat } from '@/shared/hooks/useFormat';
 import { CheckCircle2, XCircle, Image as ImageIcon } from 'lucide-react';
 import { useApproveJob, useRejectJob } from '../hooks/useHouseEconomy';
 
-interface PendingInstance {
+export interface PendingInstance {
   id: string;
   jobMenuItem: { title: string; iconEmoji: string | null; reward: unknown };
   child: { user: { name: string } };
@@ -28,7 +29,6 @@ interface PendingApprovalCardProps {
 
 export function PendingApprovalCard({ instance }: PendingApprovalCardProps) {
   const t = useTranslations('houseEconomy');
-  const tc = useTranslations('common');
   const f = useFormat();
   const [note, setNote] = useState('');
 
@@ -72,8 +72,13 @@ export function PendingApprovalCard({ instance }: PendingApprovalCardProps) {
           {(['beforePhotoUrl', 'afterPhotoUrl'] as const).map((key) => (
             <div key={key} className="aspect-square rounded-xl overflow-hidden bg-muted flex items-center justify-center">
               {instance[key] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={instance[key]!} alt="" className="w-full h-full object-cover" />
+                <Image
+                  src={instance[key]!}
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 50vw, 33vw"
+                  className="object-cover"
+                />
               ) : (
                 <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
               )}

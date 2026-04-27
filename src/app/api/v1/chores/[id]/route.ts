@@ -4,21 +4,23 @@
  * DELETE /api/v1/chores/[id]
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { authenticate } from '@/core/auth/authenticate';
 import { withHousehold, handleApiError } from '@/core/db/with-household';
 import { ChoresRepository } from '@/features/chores/api/repository';
 import { updateChoreSchema } from '@/features/chores/schemas';
 import { rateLimits, getClientIp } from '@/core/security/rate-limit';
 
-interface Params { params: { id: string } }
+interface Params { params: Promise<{ id: string }> }
 
 export async function GET(req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
     const session = await authenticate(req);
     return await withHousehold(session.userId, session.householdId, async () => {
       const repo = new ChoresRepository(session.householdId);
-      const chore = await repo.findById(params.id);
+      const chore = await repo.findById(id);
       if (!chore) return NextResponse.json({ error: 'المهمة غير موجودة' }, { status: 404 });
       return NextResponse.json(chore);
     });
@@ -28,8 +30,9 @@ export async function GET(req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req.headers);
     const { success } = rateLimits.api(ip);
     if (!success) return NextResponse.json({ error: 'طلبات كثيرة' }, { status: 429 });
 
@@ -39,9 +42,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     return await withHousehold(session.userId, session.householdId, async () => {
       const repo = new ChoresRepository(session.householdId);
-      const existing = await repo.findById(params.id);
+      const existing = await repo.findById(id);
       if (!existing) return NextResponse.json({ error: 'المهمة غير موجودة' }, { status: 404 });
-      const updated = await repo.update(params.id, data);
+      const updated = await repo.update(id, data);
       return NextResponse.json(updated);
     });
   } catch (err) {
@@ -50,13 +53,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
     const session = await authenticate(req);
     return await withHousehold(session.userId, session.householdId, async () => {
       const repo = new ChoresRepository(session.householdId);
-      const existing = await repo.findById(params.id);
+      const existing = await repo.findById(id);
       if (!existing) return NextResponse.json({ error: 'المهمة غير موجودة' }, { status: 404 });
-      await repo.delete(params.id);
+      await repo.delete(id);
       return new NextResponse(null, { status: 204 });
     });
   } catch (err) {

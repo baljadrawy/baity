@@ -6,7 +6,6 @@
  */
 
 import { useTranslations } from 'next-intl';
-import { useLocale } from 'next-intl';
 import { ExternalLink, Send, Bell, Globe, Info, Users, Home } from 'lucide-react';
 
 export default function SettingsPage() {

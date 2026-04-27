@@ -39,5 +39,5 @@ export async function requireServerSession(): Promise<Session> {
   if (!session) {
     redirect('/login');
   }
-  return session;
+  return session as Session;
 }

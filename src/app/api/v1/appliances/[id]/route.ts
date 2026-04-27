@@ -2,21 +2,23 @@
  * GET/PATCH/DELETE /api/v1/appliances/[id]
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { authenticate } from '@/core/auth/authenticate';
 import { withHousehold, handleApiError } from '@/core/db/with-household';
 import { AppliancesRepository } from '@/features/appliances/api/repository';
 import { updateApplianceSchema } from '@/features/appliances/schemas';
 import { rateLimits, getClientIp } from '@/core/security/rate-limit';
 
-interface Params { params: { id: string } }
+interface Params { params: Promise<{ id: string }> }
 
 export async function GET(req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
     const session = await authenticate(req);
     return await withHousehold(session.userId, session.householdId, async () => {
       const repo = new AppliancesRepository(session.householdId);
-      const item = await repo.findById(params.id);
+      const item = await repo.findById(id);
       if (!item) return NextResponse.json({ error: 'الجهاز غير موجود' }, { status: 404 });
       return NextResponse.json({ data: item });
     });
@@ -26,8 +28,9 @@ export async function GET(req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req.headers);
     const { success } = rateLimits.api(ip);
     if (!success) return NextResponse.json({ error: 'طلبات كثيرة' }, { status: 429 });
 
@@ -37,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     return await withHousehold(session.userId, session.householdId, async () => {
       const repo = new AppliancesRepository(session.householdId);
-      const item = await repo.update(params.id, data);
+      const item = await repo.update(id, data);
       return NextResponse.json({ data: item });
     });
   } catch (err) {
@@ -46,11 +49,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
     const session = await authenticate(req);
     return await withHousehold(session.userId, session.householdId, async () => {
       const repo = new AppliancesRepository(session.householdId);
-      await repo.delete(params.id);
+      await repo.delete(id);
       return NextResponse.json({ success: true });
     });
   } catch (err) {

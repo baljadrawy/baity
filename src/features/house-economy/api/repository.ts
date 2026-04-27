@@ -7,6 +7,7 @@
  */
 
 import { prisma } from '@/core/db/prisma';
+import type { Prisma } from '@prisma/client';
 import type {
   CreateJobMenuItemInput,
   UpdateJobMenuItemInput,
@@ -136,7 +137,7 @@ export class HouseEconomyRepository {
     const where = {
       jobMenuItem: { householdId: this.householdId },
       ...(filters?.childId && { childId: filters.childId }),
-      ...(filters?.status && { status: filters.status as any }),
+      ...(filters?.status && { status: filters.status as Prisma.JobInstanceWhereInput['status'] }),
     };
 
     return prisma.jobInstance.findMany({

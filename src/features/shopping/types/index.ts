@@ -2,10 +2,10 @@
  * Types — وحدة التسوق
  */
 
-import type { ShoppingList, ShoppingItem, ShoppingItemStatus, ShoppingListStatus } from '@prisma/client';
+import type { ShoppingList, ShoppingItem } from '@prisma/client';
 
 // Re-export Prisma types
-export type { ShoppingList, ShoppingItem, ShoppingItemStatus, ShoppingListStatus };
+export type { ShoppingList, ShoppingItem };
 
 /** قائمة مع إحصائيات */
 export interface ShoppingListWithMeta extends ShoppingList {

@@ -11,10 +11,11 @@ import { BillsPageClient } from './BillsPageClient';
 import { PageLoader } from '@/shared/components/PageLoader';
 
 export async function generateMetadata({
-  params: { locale },
+  params,
 }: {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'bills' });
   return { title: t('title') };
 }

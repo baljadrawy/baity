@@ -25,7 +25,7 @@ export async function ChildWalletWidget() {
       id: true,
       age: true,
       user: { select: { name: true } },
-      childWallet: {
+      wallet: {
         select: {
           id: true,
           balance: true,
@@ -34,11 +34,11 @@ export async function ChildWalletWidget() {
         },
       },
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { joinedAt: 'asc' },
   });
 
   // الأطفال الذين لديهم محفظة فقط
-  const wallets = childMembers.filter((m) => m.childWallet !== null);
+  const wallets = childMembers.filter((m) => m.wallet !== null);
 
   if (wallets.length === 0) {
     return (
@@ -53,7 +53,7 @@ export async function ChildWalletWidget() {
   return (
     <ul className="flex flex-col gap-3" role="list">
       {wallets.map((member) => {
-        const wallet = member.childWallet!;
+        const wallet = member.wallet!;
         const name = member.user?.name ?? '?';
 
         return (

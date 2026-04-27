@@ -21,7 +21,7 @@ export const AssignmentTypeEnum = z.enum([
   'FIXED',
 ]);
 
-export const createChoreSchema = z.object({
+const createChoreObject = z.object({
   name: z
     .string({ required_error: 'اسم المهمة مطلوب' })
     .min(1, 'اسم المهمة مطلوب')
@@ -54,7 +54,9 @@ export const createChoreSchema = z.object({
   trackDateOnly: z.boolean().default(false),
 
   dueDateRollover: z.boolean().default(true),
-}).refine(
+});
+
+export const createChoreSchema = createChoreObject.refine(
   (data) => {
     if (data.periodType === 'DAILY' || data.periodType === 'DYNAMIC_REGULAR') {
       return data.periodDays !== undefined && data.periodDays > 0;
@@ -66,7 +68,7 @@ export const createChoreSchema = z.object({
 
 export type CreateChoreInput = z.infer<typeof createChoreSchema>;
 
-export const updateChoreSchema = createChoreSchema.partial();
+export const updateChoreSchema = createChoreObject.partial();
 export type UpdateChoreInput = z.infer<typeof updateChoreSchema>;
 
 export const executeChoreSchema = z.object({

@@ -14,9 +14,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { createBillSchema, type CreateBillInput } from '../schemas';
-import { SERVICE_PROVIDERS, getProvidersByCategory, CATEGORY_COLORS } from '../lib/providers';
+import { getProvidersByCategory } from '../lib/providers';
 import { convertToWesternDigits } from '@/core/i18n/format-number';
-import type { BillWithMeta } from '../types';
 
 interface BillFormProps {
   defaultValues?: Partial<CreateBillInput>;
@@ -33,14 +32,12 @@ const CATEGORIES = [
 export function BillForm({ defaultValues, onSubmit, isLoading, submitLabel }: BillFormProps) {
   const t = useTranslations('bills');
   const tc = useTranslations('common');
-  const te = useTranslations('errors');
 
   const {
     register,
     control,
     handleSubmit,
     watch,
-    setValue,
     formState: { errors },
   } = useForm<CreateBillInput>({
     resolver: zodResolver(createBillSchema),

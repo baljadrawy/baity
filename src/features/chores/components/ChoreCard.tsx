@@ -11,8 +11,8 @@ import { useTranslations } from 'next-intl';
 import { useFormat } from '@/shared/hooks/useFormat';
 import { cn } from '@/shared/lib/utils';
 import {
-  CheckCircle2, Clock, AlertTriangle, Calendar, User,
-  RotateCcw, ChevronLeft, Zap,
+  CheckCircle2, AlertTriangle, Calendar, User,
+  RotateCcw, Zap,
 } from 'lucide-react';
 import type { ChoreWithMeta } from '../api/repository';
 

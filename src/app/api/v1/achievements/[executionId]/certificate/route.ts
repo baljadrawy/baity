@@ -3,7 +3,8 @@
  * يُنشئ صفحة HTML جاهزة للطباعة كشهادة إنجاز للطفل
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/core/db';
 import { requireServerSession } from '@/core/auth/server-session';
 
@@ -12,8 +13,9 @@ export const runtime = 'nodejs';
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { executionId: string } }
+  { params }: { params: Promise<{ executionId: string }> }
 ) {
+  const { executionId } = await params;
   // مصادقة
   let session;
   try {
@@ -24,7 +26,7 @@ export async function GET(
 
   // جلب بيانات الإنجاز
   const execution = await prisma.choreExecution.findUnique({
-    where: { id: params.executionId },
+    where: { id: executionId },
     include: {
       chore: {
         select: { name: true, householdId: true },
@@ -44,10 +46,10 @@ export async function GET(
   // جلب اسم المنجز
   const member = await prisma.householdMember.findUnique({
     where: { id: execution.executedById },
-    select: { name: true },
+    select: { user: { select: { name: true } } },
   });
 
-  const childName = member?.name ?? '—';
+  const childName = member?.user.name ?? '—';
   const choreName = execution.chore.name;
   const points = execution.pointsAwarded;
   const date = execution.executedAt.toLocaleDateString('ar-SA-u-nu-latn', {

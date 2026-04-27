@@ -3,7 +3,8 @@
  * محمي بـ CRON_SECRET
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { runChoreRollover } from '@/server/jobs/chore-rollover';
 
 export async function GET(req: NextRequest) {

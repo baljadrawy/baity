@@ -7,7 +7,8 @@
  * crontab: 0 6 * * * curl -H "x-cron-secret: $SECRET" https://baity.local/api/v1/cron/bill-status
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { runBillStatusUpdate } from '@/server/jobs/bill-recurrence';
 
 export async function GET(req: NextRequest) {

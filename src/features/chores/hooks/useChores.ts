@@ -13,6 +13,7 @@
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import { api } from '@/shared/lib/api-client';
 import type { CreateChoreInput, ExecuteChoreInput } from '../schemas';
+import type { ChoreWithMeta } from '../api/repository';
 
 // ============================================================
 // Types (مؤقتة — ستُنقل لـ types/index.ts لاحقاً)
@@ -33,7 +34,7 @@ interface Chore {
 }
 
 interface ChoresResponse {
-  data: Chore[];
+  data: ChoreWithMeta[];
   total: number;
 }
 

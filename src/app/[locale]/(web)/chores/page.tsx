@@ -7,7 +7,12 @@ import { Suspense } from 'react';
 import { ChoresPageClient } from './ChoresPageClient';
 import { PageLoader } from '@/shared/components/PageLoader';
 
-export async function generateMetadata({ params: { locale } }: { params: { locale: string } }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'chores' });
   return { title: t('title') };
 }

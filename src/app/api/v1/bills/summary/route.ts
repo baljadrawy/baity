@@ -2,7 +2,8 @@
  * GET /api/v1/bills/summary — ملخص الفواتير للـ Dashboard
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { authenticate } from '@/core/auth/authenticate';
 import { withHousehold } from '@/core/db/with-household';
 import { BillsRepository } from '@/features/bills/api/repository';
@@ -11,7 +12,7 @@ import { rateLimits, getClientIp } from '@/core/security/rate-limit';
 
 export async function GET(req: NextRequest) {
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req.headers);
     const { success } = rateLimits.api(ip);
     if (!success) {
       return NextResponse.json({ error: 'طلبات كثيرة' }, { status: 429 });

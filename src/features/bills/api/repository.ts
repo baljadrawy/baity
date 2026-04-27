@@ -111,10 +111,7 @@ export class BillsRepository {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    const [dueCount, overdueCount, paidThisMonth, upcomingCount] = await prisma.$transaction([
-      prisma.bill.count({
-        where: { householdId: this.householdId, deletedAt: null, status: 'DUE' },
-      }),
+    const [overdueCount, paidThisMonth, upcomingCount] = await prisma.$transaction([
       prisma.bill.count({
         where: { householdId: this.householdId, deletedAt: null, status: 'OVERDUE' },
       }),

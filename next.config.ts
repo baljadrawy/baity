@@ -65,9 +65,9 @@ const nextConfig: NextConfig = {
   },
 
   // ---- Experimental ----
-  experimental: {
-    typedRoutes: true,
-  },
+  // typedRoutes معطّلة: لا تتعامل جيداً مع locale prefix الديناميكي من next-intl
+  // (كل route حقيقي هو /[locale]/X لكن الكود يكتبه /X والـ middleware يضيف locale)
+  experimental: {},
 };
 
 export default withNextIntl(nextConfig);

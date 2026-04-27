@@ -4,7 +4,8 @@
  * DELETE /api/v1/bills/[id] — حذف فاتورة (soft delete)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { authenticate } from '@/core/auth/authenticate';
 import { withHousehold, handleApiError } from '@/core/db/with-household';
 import { BillsRepository } from '@/features/bills/api/repository';
@@ -12,12 +13,13 @@ import { updateBillSchema } from '@/features/bills/schemas';
 import { rateLimits, getClientIp } from '@/core/security/rate-limit';
 
 interface Params {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function GET(req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req.headers);
     const { success } = rateLimits.api(ip);
     if (!success) return NextResponse.json({ error: 'طلبات كثيرة' }, { status: 429 });
 
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     return await withHousehold(session.userId, session.householdId, async () => {
       const repo = new BillsRepository(session.householdId);
-      const bill = await repo.findById(params.id);
+      const bill = await repo.findById(id);
       if (!bill) return NextResponse.json({ error: 'الفاتورة غير موجودة' }, { status: 404 });
       return NextResponse.json(bill);
     });
@@ -35,8 +37,9 @@ export async function GET(req: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req.headers);
     const { success } = rateLimits.api(ip);
     if (!success) return NextResponse.json({ error: 'طلبات كثيرة' }, { status: 429 });
 
@@ -47,10 +50,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return await withHousehold(session.userId, session.householdId, async () => {
       const repo = new BillsRepository(session.householdId);
       // تحقق أن الفاتورة تخص هذا البيت
-      const existing = await repo.findById(params.id);
+      const existing = await repo.findById(id);
       if (!existing) return NextResponse.json({ error: 'الفاتورة غير موجودة' }, { status: 404 });
 
-      const updated = await repo.update(params.id, data);
+      const updated = await repo.update(id, data);
       return NextResponse.json(updated);
     });
   } catch (err) {
@@ -59,8 +62,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(req: NextRequest, { params }: Params) {
+  const { id } = await params;
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req.headers);
     const { success } = rateLimits.api(ip);
     if (!success) return NextResponse.json({ error: 'طلبات كثيرة' }, { status: 429 });
 
@@ -68,10 +72,10 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
     return await withHousehold(session.userId, session.householdId, async () => {
       const repo = new BillsRepository(session.householdId);
-      const existing = await repo.findById(params.id);
+      const existing = await repo.findById(id);
       if (!existing) return NextResponse.json({ error: 'الفاتورة غير موجودة' }, { status: 404 });
 
-      await repo.delete(params.id);
+      await repo.delete(id);
       return new NextResponse(null, { status: 204 });
     });
   } catch (err) {

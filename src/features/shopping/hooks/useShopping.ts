@@ -6,7 +6,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/shared/lib/api-client';
-import type { CreateShoppingListInput, CreateShoppingItemInput, UpdateShoppingItemInput } from '../schemas';
+import type { CreateShoppingListInput, CreateShoppingItemInput } from '../schemas';
 import type { ShoppingListWithMeta, ShoppingSummary } from '../types';
 
 export const shoppingKeys = {

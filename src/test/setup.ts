@@ -4,6 +4,7 @@
  */
 
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 
 // ---- Mock next-intl في الاختبارات ----
 vi.mock('next-intl', () => ({

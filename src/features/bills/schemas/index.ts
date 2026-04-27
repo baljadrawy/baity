@@ -5,17 +5,10 @@
  */
 
 import { z } from 'zod';
-import { convertToWesternDigits } from '@/core/i18n/format-number';
 
 // ============================================================
 // Helpers
 // ============================================================
-
-/** تحويل الأرقام الهندية/الفارسية + التحقق من رقم موجب */
-const decimalString = z
-  .string()
-  .transform((v) => convertToWesternDigits(v).replace(/[^0-9.]/g, ''))
-  .pipe(z.string().regex(/^\d+(\.\d{1,2})?$/, 'قيمة رقمية غير صحيحة'));
 
 const positiveDecimal = z.coerce
   .number({ invalid_type_error: 'يجب أن يكون رقماً' })

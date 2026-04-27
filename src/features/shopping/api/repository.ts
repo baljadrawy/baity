@@ -98,7 +98,7 @@ export class ShoppingRepository {
   // List Mutations
   // ============================================================
 
-  async createList(data: CreateShoppingListInput, addedById: string): Promise<ShoppingList> {
+  async createList(data: CreateShoppingListInput, _addedById: string): Promise<ShoppingList> {
     return prisma.shoppingList.create({
       data: {
         householdId: this.householdId,

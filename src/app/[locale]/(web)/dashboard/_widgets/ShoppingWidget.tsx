@@ -20,7 +20,7 @@ export async function ShoppingWidget() {
   // أهم 6 عناصر غير مشتراة مرتبة: HIGH أولاً ثم MEDIUM ثم LOW
   const items = await prisma.shoppingItem.findMany({
     where: {
-      shoppingList: {
+      list: {
         householdId: session.householdId,
         deletedAt: null,
       },

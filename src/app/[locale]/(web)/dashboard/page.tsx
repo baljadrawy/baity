@@ -61,7 +61,7 @@ export default async function DashboardPage() {
       prisma.shoppingItem.count({
         where: {
           isChecked: false,
-          shoppingList: { householdId: session.householdId, deletedAt: null },
+          list: { householdId: session.householdId, deletedAt: null },
         },
       }),
       prisma.childWallet.findMany({

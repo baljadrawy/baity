@@ -6,7 +6,7 @@
  * يعرض حقول مختلفة حسب نوع التكرار المختار
  */
 
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { createChoreSchema, type CreateChoreInput } from '../schemas';
@@ -35,7 +35,6 @@ export function ChoreForm({ defaultValues, onSubmit, isLoading, submitLabel }: C
 
   const {
     register,
-    control,
     handleSubmit,
     watch,
     formState: { errors },

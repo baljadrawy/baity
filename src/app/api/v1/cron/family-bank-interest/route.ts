@@ -5,7 +5,8 @@
  * crontab: 0 6 1 * * curl -H "x-cron-secret: $CRON_SECRET" https://yourdomain.com/api/v1/cron/family-bank-interest
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { runFamilyBankInterest } from '@/server/jobs/family-bank-interest';
 
 export const dynamic = 'force-dynamic';

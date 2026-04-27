@@ -36,14 +36,6 @@ export function ApplianceForm({ defaultValues, onSubmit, onCancel, isLoading }: 
     },
   });
 
-  const field = (id: string, label: string, required = false) => (
-    <div>
-      <label className="text-sm font-medium mb-1.5 block" htmlFor={id}>
-        {label}{required && <span className="text-red-500 ms-1" aria-hidden>*</span>}
-      </label>
-    </div>
-  );
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" dir="rtl" noValidate>
       {/* معلومات أساسية */}
@@ -61,13 +53,13 @@ export function ApplianceForm({ defaultValues, onSubmit, onCancel, isLoading }: 
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {[
+          {([
             { id: 'a-brand', key: 'brand', label: t('brand') },
             { id: 'a-model', key: 'model', label: t('model') },
-          ].map(({ id, key, label }) => (
+          ] as const).map(({ id, key, label }) => (
             <div key={id}>
               <label className="text-sm font-medium mb-1.5 block" htmlFor={id}>{label}</label>
-              <input id={id} {...register(key as any)}
+              <input id={id} {...register(key)}
                 className="w-full border border-border rounded-xl px-4 py-3 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[44px]" />
             </div>
           ))}

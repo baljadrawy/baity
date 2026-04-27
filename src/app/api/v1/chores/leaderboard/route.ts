@@ -2,7 +2,8 @@
  * GET /api/v1/chores/leaderboard — ترتيب الأعضاء بعدد المهام المنجزة هذا الشهر
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { authenticate } from '@/core/auth/authenticate';
 import { withHousehold, handleApiError } from '@/core/db/with-household';
 import { prisma } from '@/core/db/prisma';
@@ -10,7 +11,7 @@ import { rateLimits, getClientIp } from '@/core/security/rate-limit';
 
 export async function GET(req: NextRequest) {
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req.headers);
     const { success } = rateLimits.api(ip);
     if (!success) return NextResponse.json({ error: 'طلبات كثيرة' }, { status: 429 });
 
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
 
       // جلب أعضاء البيت
       const members = await prisma.householdMember.findMany({
-        where: { householdId: session.householdId, deletedAt: null },
+        where: { householdId: session.householdId },
         include: { user: { select: { name: true } } },
       });
 
@@ -32,14 +33,14 @@ export async function GET(req: NextRequest) {
           const [executionsThisMonth, pointsThisMonth] = await Promise.all([
             prisma.choreExecution.count({
               where: {
-                executedBy: member.id,
+                executedById: member.id,
                 executedAt: { gte: monthStart },
                 chore: { householdId: session.householdId, deletedAt: null },
               },
             }),
             prisma.choreExecution.aggregate({
               where: {
-                executedBy: member.id,
+                executedById: member.id,
                 executedAt: { gte: monthStart },
                 chore: { householdId: session.householdId, deletedAt: null },
               },

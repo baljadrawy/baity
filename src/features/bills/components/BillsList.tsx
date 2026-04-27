@@ -6,10 +6,10 @@
  * Mobile-first: بطاقة واحدة على الجوال، عمودان على md+، 3 على xl+
  */
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Search, Filter, Plus, RefreshCw } from 'lucide-react';
-import { useBills, useDeleteBill, usePayBill } from '../hooks/useBills';
+import { Search, Plus, RefreshCw } from 'lucide-react';
+import { useBills, useDeleteBill } from '../hooks/useBills';
 import { BillCard } from './BillCard';
 import { PayBillDialog } from './PayBillDialog';
 import type { BillWithMeta } from '../types';
@@ -33,7 +33,7 @@ export function BillsList({ onAdd }: BillsListProps) {
   const [payingBill, setPayingBill] = useState<BillWithMeta | null>(null);
 
   const { data, isLoading, isFetching, error, refetch } = useBills(filters);
-  const deleteBill = useDeleteBill();
+  useDeleteBill();
 
   const bills = data?.data ?? [];
   const total = data?.total ?? 0;

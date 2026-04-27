@@ -9,7 +9,6 @@
 
 import { useTranslations } from 'next-intl';
 import { useFormat } from '@/shared/hooks/useFormat';
-import { cn } from '@/shared/lib/utils';
 import type { ChildWalletWithDetails } from '../types';
 
 interface WalletCardProps {

@@ -2,7 +2,8 @@
  * POST /api/v1/onboarding — إنشاء المنزل واسم المستخدم عند التسجيل الأول
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest} from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { authenticate } from '@/core/auth/authenticate';
 import { handleApiError } from '@/core/db/with-household';
@@ -16,7 +17,7 @@ const onboardingSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req.headers);
     const { success } = rateLimits.api(ip);
     if (!success) return NextResponse.json({ error: 'طلبات كثيرة' }, { status: 429 });
 

@@ -39,14 +39,14 @@ export async function authenticate(req: NextRequest | Request): Promise<Session>
   // 2. محاولة من Cookie (للويب)
   let cookieToken: string | undefined;
 
-  if (req instanceof Request) {
+  if ('cookies' in req && typeof req.cookies?.get === 'function') {
+    // NextRequest — يملك .cookies
+    cookieToken = req.cookies.get(SESSION_COOKIE)?.value;
+  } else {
     // Standard Request — استخراج Cookie يدوياً
     const cookieHeader = req.headers.get('cookie') ?? '';
     const cookies = parseCookies(cookieHeader);
     cookieToken = cookies[SESSION_COOKIE];
-  } else {
-    // NextRequest — يملك .cookies
-    cookieToken = req.cookies.get(SESSION_COOKIE)?.value;
   }
 
   if (cookieToken) {

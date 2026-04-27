@@ -25,7 +25,7 @@ export function ChoresList({ onAdd }: ChoresListProps) {
   const [executingChore, setExecutingChore] = useState<ChoreWithMeta | null>(null);
 
   const { data, isLoading, isFetching, error, refetch } = useChores({ search: search || undefined, page, limit: 20 });
-  const deleteChore = useDeleteChore();
+  useDeleteChore();
 
   const chores = data?.data ?? [];
   const total = data?.total ?? 0;

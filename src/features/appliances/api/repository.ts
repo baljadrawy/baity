@@ -192,7 +192,18 @@ export class AppliancesRepository {
   // Private helpers
   // ============================================================
 
-  private _addMeta(appliance: any): ApplianceWithMeta {
+  private _addMeta(
+    appliance: Appliance & {
+      schedules?: Array<{
+        id: string;
+        taskName: string;
+        nextDueAt: Date;
+        intervalDays: number;
+        isActive: boolean;
+      }>;
+      _count?: { documents: number };
+    }
+  ): ApplianceWithMeta {
     const now = new Date();
     let warrantyDaysLeft: number | null = null;
     let warrantyStatus: ApplianceWithMeta['warrantyStatus'] = 'none';

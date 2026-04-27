@@ -65,18 +65,13 @@ export async function runWarrantyCheck(): Promise<WarrantyCheckResult> {
     if (daysLeft < 0) continue; // انتهى بالفعل
 
     try {
-      // جلب chatIds للـ household
+      // جلب chatId للـ household (مخزّن على مستوى البيت لا الأعضاء)
       if (!householdChatIds.has(appliance.householdId)) {
-        const members = await prisma.householdMember.findMany({
-          where: {
-            householdId: appliance.householdId,
-            role: { in: ['OWNER', 'ADMIN', 'MEMBER'] },
-          },
-          select: { user: { select: { telegramChatId: true } } },
+        const household = await prisma.household.findUnique({
+          where: { id: appliance.householdId },
+          select: { telegramChatId: true },
         });
-        const ids = members
-          .map((m) => m.user?.telegramChatId)
-          .filter((id): id is string => !!id);
+        const ids = household?.telegramChatId ? [household.telegramChatId] : [];
         householdChatIds.set(appliance.householdId, ids);
       }
 

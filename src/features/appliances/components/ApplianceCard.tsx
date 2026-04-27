@@ -26,7 +26,6 @@ interface ApplianceCardProps {
 }
 
 export function ApplianceCard({ appliance, onClick }: ApplianceCardProps) {
-  const t = useTranslations('appliances');
   const tw = useTranslations('warranty');
   const f = useFormat();
 

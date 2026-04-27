@@ -41,7 +41,6 @@ export function ChoresLeaderboard() {
 
   if (members.length === 0) return null;
 
-  const medals = ['🥇', '🥈', '🥉'];
   const topThree = members.slice(0, 3);
 
   return (
