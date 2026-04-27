@@ -1,0 +1,41 @@
+# Caddyfile — Caddy v2 Reverse Proxy
+# يعمل على Pi 4 مع TLS تلقائي (Let's Encrypt)
+
+{
+  # email للتجديد التلقائي لـ TLS
+  email {$CADDY_EMAIL}
+}
+
+# الدومين الرئيسي
+{$DOMAIN_NAME} {
+  encode gzip zstd
+
+  # Security Headers
+  header {
+    # منع تضمين الموقع في iframe من نطاقات أخرى
+    X-Frame-Options "SAMEORIGIN"
+    # منع MIME sniffing
+    X-Content-Type-Options "nosniff"
+    # إجبار HTTPS
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    # Content Security Policy — يُضبَط لاحقاً
+    X-XSS-Protection "1; mode=block"
+    # إخفاء معلومات الخادم
+    -Server
+    -X-Powered-By
+    # Permissions Policy
+    Permissions-Policy "camera=self, microphone=(), geolocation=()"
+  }
+
+  # Cache للـ static assets
+  @static {
+    path /_next/static/* /favicon.ico /icons/*
+  }
+  header @static Cache-Control "public, max-age=31536000, immutable"
+
+  # تمرير الطلبات للتطبيق
+  reverse_proxy app:3000 {
+    health_uri /api/health
+    health_interval 30s
+  }
+}

@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بيتي — إدارة المنزل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --olive-deep: #2d3a2e;
+    --olive: #4a5d43;
+    --sand: #e8dcc4;
+    --sand-light: #f5ede0;
+    --cream: #faf6ee;
+    --gold: #c9a961;
+    --gold-soft: #d9bf7f;
+    --ink: #1a1f1a;
+    --ink-soft: #5a635a;
+    --alert: #b84a3e;
+    --alert-soft: #e8b4ae;
+    --success: #6b8e4e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(201, 169, 97, 0.06) 0%, transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(74, 93, 67, 0.04) 0%, transparent 40%);
+  }
+
+  /* Arabic geometric pattern */
+  .pattern-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cpath d='M40 0 L80 40 L40 80 L0 40 Z M40 15 L65 40 L40 65 L15 40 Z' fill='none' stroke='%232d3a2e' stroke-width='0.5'/%3E%3C/svg%3E");
+    z-index: 0;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--olive-deep);
+    color: var(--sand-light);
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba(232, 220, 196, 0.1);
+    margin-bottom: 2rem;
+  }
+
+  .logo-mark {
+    width: 44px;
+    height: 44px;
+    background: var(--gold);
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-family: 'Amiri', serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--olive-deep);
+    position: relative;
+  }
+
+  .logo-mark::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 14px;
+    border: 1px solid rgba(201, 169, 97, 0.3);
+  }
+
+  .logo-text h1 {
+    font-family: 'Amiri', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .logo-text p {
+    font-size: 0.75rem;
+    opacity: 0.6;
+    margin-top: 2px;
+  }
+
+  .nav-section { margin-bottom: 1.5rem; }
+
+  .nav-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.4;
+    margin-bottom: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
+    color: var(--sand-light);
+    opacity: 0.75;
+  }
+
+  .nav-item:hover {
+    background: rgba(201, 169, 97, 0.08);
+    opacity: 1;
+  }
+
+  .nav-item.active {
+    background: var(--gold);
+    color: var(--olive-deep);
+    opacity: 1;
+    font-weight: 600;
+  }
+
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.8;
+  }
+
+  .nav-badge {
+    margin-right: auto;
+    background: var(--alert);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .family-widget {
+    margin-top: auto;
+    padding: 1rem;
+    background: rgba(232, 220, 196, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(232, 220, 196, 0.1);
+  }
+
+  .family-widget h4 {
+    font-size: 0.75rem;
+    opacity: 0.5;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .family-avatars {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+  }
+
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid var(--olive-deep);
+    margin-right: -8px;
+    display: grid;
+    place-items: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--olive-deep);
+  }
+
+  .avatar:nth-child(1) { background: var(--gold); }
+  .avatar:nth-child(2) { background: var(--sand); }
+  .avatar:nth-child(3) { background: var(--gold-soft); }
+  .avatar:nth-child(4) { background: var(--sand-light); }
+
+  /* Main content */
+  .main {
+    padding: 2.5rem 3rem;
+    max-width: 1400px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(74, 93, 67, 0.1);
+  }
+
+  .greeting h2 {
+    font-family: 'Amiri', serif;
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--olive-deep);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .greeting p {
+    color: var(--ink-soft);
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+  }
+
+  .date-card {
+    text-align: left;
+    padding: 0.75rem 1.25rem;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid rgba(74, 93, 67, 0.1);
+  }
+
+  .date-card .hijri {
+    font-family: 'Amiri', serif;
+    font-size: 1.1rem;
+    color: var(--olive);
+    font-weight: 700;
+  }
+
+  .date-card .gregorian {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    margin-top: 2px;
+  }
+
+  /* Stats row */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(74, 93, 67, 0.08);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(45, 58, 46, 0.08);
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 60px;
+    height: 60px;
+    background: currentColor;
+    opacity: 0.06;
+    border-radius: 0 16px 0 60px;
+  }
+
+  .stat-card.bills { color: var(--alert); }
+  .stat-card.tasks { color: var(--olive); }
+  .stat-card.shopping { color: var(--gold); }
+  .stat-card.maintenance { color: #8b6f47; }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: currentColor;
+    opacity: 0.12;
+    margin-bottom: 1rem;
+  }
+
+  .stat-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.8;
+    opacity: 10;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--ink);
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    line-height: 1;
+  }
+
+  .stat-unit {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--ink-soft);
+    margin-right: 0.25rem;
+  }
+
+  .stat-trend {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: currentColor;
+  }
+
+  /* Content grid */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .section-card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid rgba(74, 93, 67, 0.08);
+    overflow: hidden;
+  }
+
+  .section-header {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(74, 93, 67, 0.06);
+  }
+
+  .section-header h3 {
+    font-family: 'Amiri', serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--olive-deep);
+  }
+
+  .section-header .view-all {
+    font-size: 0.85rem;
+    color: var(--olive);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .section-body { padding: 0.5rem; }
+
+  /* Bills list */
+  .bill-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 12px;
+    transition: background 0.15s ease;
+  }
+
+  .bill-item:hover { background: var(--sand-light); }
+  .bill-item + .bill-item { border-top: 1px dashed rgba(74, 93, 67, 0.08); }
+
+  .bill-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .bill-logo.stc { background: #4d148c; color: white; }
+  .bill-logo.sec { background: #0093d0; color: white; }
+  .bill-logo.mobily { background: #00965e; color: white; }
+  .bill-logo.water { background: #1a7fb8; color: white; }
+
+  .bill-info h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 2px;
+  }
+
+  .bill-info p {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+
+  .bill-amount {
+    text-align: left;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--ink);
+  }
+
+  .bill-amount small {
+    display: block;
+    font-weight: 400;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    margin-top: 2px;
+  }
+
+  .bill-status {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .bill-status.due { background: var(--alert-soft); color: var(--alert); }
+  .bill-status.upcoming { background: #f5e8cc; color: #8b6f47; }
+  .bill-status.paid { background: #d4e4c8; color: var(--success); }
+
+  /* Tasks */
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.875rem 1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .task-item:hover { background: var(--sand-light); }
+  .task-item + .task-item { border-top: 1px dashed rgba(74, 93, 67, 0.08); }
+
+  .task-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--olive);
+    border-radius: 6px;
+    flex-shrink: 0;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .task-item.done .task-checkbox {
+    background: var(--olive);
+  }
+
+  .task-item.done .task-checkbox::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .task-info { flex: 1; }
+
+  .task-info h5 {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .task-item.done .task-info h5 {
+    text-decoration: line-through;
+    color: var(--ink-soft);
+  }
+
+  .task-info p {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    margin-top: 2px;
+  }
+
+  .task-assignee {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--gold);
+    color: var(--olive-deep);
+  }
+
+  /* Shopping list card */
+  .shopping-preview {
+    padding: 1rem;
+  }
+
+  .shopping-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .shopping-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+
+  .shopping-item.checked {
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+
+  .shopping-count {
+    margin-right: auto;
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+  }
+
+  .add-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    background: var(--sand-light);
+    border: 1px dashed var(--olive);
+    border-radius: 10px;
+    color: var(--olive);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease;
+  }
+
+  .add-button:hover { background: var(--sand); }
+
+  /* Maintenance card */
+  .maintenance-card {
+    margin-top: 1.5rem;
+  }
+
+  .appliance-item {
+    padding: 1rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--sand-light) 0%, white 100%);
+    border: 1px solid rgba(201, 169, 97, 0.15);
+    margin-bottom: 0.75rem;
+  }
+
+  .appliance-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .appliance-header h5 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--olive-deep);
+  }
+
+  .days-until {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: white;
+    color: var(--olive);
+    border: 1px solid rgba(74, 93, 67, 0.15);
+  }
+
+  .days-until.urgent { background: var(--alert-soft); color: var(--alert); border-color: transparent; }
+
+  .progress-bar {
+    height: 4px;
+    background: rgba(74, 93, 67, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 2px;
+  }
+
+  /* Responsive */
+  @media (max-width: 1100px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .main { padding: 1.5rem; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .content-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Subtle entrance animation */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .stat-card, .section-card {
+    animation: fadeUp 0.5s ease backwards;
+  }
+
+  .stat-card:nth-child(1) { animation-delay: 0.05s; }
+  .stat-card:nth-child(2) { animation-delay: 0.1s; }
+  .stat-card:nth-child(3) { animation-delay: 0.15s; }
+  .stat-card:nth-child(4) { animation-delay: 0.2s; }
+</style>
+</head>
+<body>
+<div class="pattern-bg"></div>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">ب</div>
+      <div class="logo-text">
+        <h1>بيتي</h1>
+        <p>إدارة المنزل الذكية</p>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">الرئيسية</div>
+      <div class="nav-item active">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        لوحة التحكم
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">الإدارة</div>
+      <div class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        الفواتير والمصاريف
+        <span class="nav-badge">3</span>
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        المهام المنزلية
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        قائمة المشتريات
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        صيانة الأجهزة
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">أخرى</div>
+      <div class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"/></svg>
+        التقارير
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        الإعدادات
+      </div>
+    </div>
+
+    <div class="family-widget">
+      <h4>أفراد العائلة</h4>
+      <div class="family-avatars">
+        <div class="avatar">ب</div>
+        <div class="avatar">ر</div>
+        <div class="avatar">س</div>
+        <div class="avatar">ن</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="header">
+      <div class="greeting">
+        <h2>مرحباً، باسم</h2>
+        <p>نظرة عامة على بيتك اليوم — كل شيء تحت السيطرة</p>
+      </div>
+      <div class="date-card">
+        <div class="hijri">٧ ذو القعدة ١٤٤٧</div>
+        <div class="gregorian">الجمعة، ٢٤ أبريل ٢٠٢٦</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card bills">
+        <div class="stat-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div class="stat-label">فواتير مستحقة</div>
+        <div class="stat-value">٨٤٢<span class="stat-unit">ر.س</span></div>
+        <div class="stat-trend">٣ فواتير خلال ٧ أيام</div>
+      </div>
+
+      <div class="stat-card tasks">
+        <div class="stat-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        </div>
+        <div class="stat-label">مهام اليوم</div>
+        <div class="stat-value">٥<span class="stat-unit">/ ٨</span></div>
+        <div class="stat-trend">٣ متبقية</div>
+      </div>
+
+      <div class="stat-card shopping">
+        <div class="stat-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        </div>
+        <div class="stat-label">قائمة التسوق</div>
+        <div class="stat-value">١٢<span class="stat-unit">صنف</span></div>
+        <div class="stat-trend">محدّثة قبل ساعة</div>
+      </div>
+
+      <div class="stat-card maintenance">
+        <div class="stat-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
+        </div>
+        <div class="stat-label">صيانة قادمة</div>
+        <div class="stat-value">٢<span class="stat-unit">أجهزة</span></div>
+        <div class="stat-trend">خلال الأسبوعين</div>
+      </div>
+    </div>
+
+    <!-- Content grid -->
+    <div class="content-grid">
+      <!-- Left column -->
+      <div>
+        <!-- Bills -->
+        <div class="section-card">
+          <div class="section-header">
+            <h3>الفواتير القادمة</h3>
+            <div class="view-all">
+              عرض الكل
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="bill-item">
+              <div class="bill-logo sec">SEC</div>
+              <div class="bill-info">
+                <h4>كهرباء السعودية</h4>
+                <p>فاتورة شهر شوال — حساب رقم ٤٨٢١</p>
+              </div>
+              <div class="bill-amount">
+                ٤٢٥ ر.س
+                <small>يستحق بعد ٣ أيام</small>
+              </div>
+              <div class="bill-status due">عاجل</div>
+            </div>
+
+            <div class="bill-item">
+              <div class="bill-logo stc">STC</div>
+              <div class="bill-info">
+                <h4>الاتصالات السعودية</h4>
+                <p>باقة جوال + إنترنت منزلي</p>
+              </div>
+              <div class="bill-amount">
+                ٢٨٠ ر.س
+                <small>يستحق بعد ٧ أيام</small>
+              </div>
+              <div class="bill-status upcoming">قريباً</div>
+            </div>
+
+            <div class="bill-item">
+              <div class="bill-logo water">المياه</div>
+              <div class="bill-info">
+                <h4>المياه الوطنية</h4>
+                <p>فاتورة ربع سنوية</p>
+              </div>
+              <div class="bill-amount">
+                ١٣٧ ر.س
+                <small>يستحق بعد ١٢ يوم</small>
+              </div>
+              <div class="bill-status upcoming">قريباً</div>
+            </div>
+
+            <div class="bill-item">
+              <div class="bill-logo mobily">MOB</div>
+              <div class="bill-info">
+                <h4>موبايلي</h4>
+                <p>خط بيانات احتياطي</p>
+              </div>
+              <div class="bill-amount">
+                ٩٥ ر.س
+                <small>مدفوعة</small>
+              </div>
+              <div class="bill-status paid">مدفوعة</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tasks -->
+        <div class="section-card maintenance-card">
+          <div class="section-header">
+            <h3>مهام اليوم</h3>
+            <div class="view-all">
+              عرض الكل
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </div>
+          </div>
+          <div class="section-body">
+            <div class="task-item done">
+              <div class="task-checkbox"></div>
+              <div class="task-info">
+                <h5>غسيل الملابس</h5>
+                <p>تم الإنجاز الساعة ٩:٣٠ صباحاً</p>
+              </div>
+              <div class="task-assignee">ر</div>
+            </div>
+            <div class="task-item done">
+              <div class="task-checkbox"></div>
+              <div class="task-info">
+                <h5>ترتيب غرفة المعيشة</h5>
+                <p>تم الإنجاز الساعة ١١:٠٠</p>
+              </div>
+              <div class="task-assignee">س</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-info">
+                <h5>تنظيف المطبخ بعد الغداء</h5>
+                <p>بعد الظهر — متكررة يومياً</p>
+              </div>
+              <div class="task-assignee">ن</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-info">
+                <h5>ري النباتات</h5>
+                <p>كل يومين — آخر مرة قبل يومين</p>
+              </div>
+              <div class="task-assignee">ب</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-info">
+                <h5>إخراج النفايات</h5>
+                <p>المساء — قبل الساعة ٩</p>
+              </div>
+              <div class="task-assignee">س</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div>
+        <!-- Shopping -->
+        <div class="section-card">
+          <div class="section-header">
+            <h3>قائمة المشتريات</h3>
+            <div class="view-all">
+              التفاصيل
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </div>
+          </div>
+          <div class="shopping-preview">
+            <div class="shopping-item">
+              <div class="shopping-dot"></div>
+              <span>حليب المراعي كامل الدسم</span>
+              <span class="shopping-count">×٢</span>
+            </div>
+            <div class="shopping-item">
+              <div class="shopping-dot"></div>
+              <span>خبز تميس</span>
+              <span class="shopping-count">×٤</span>
+            </div>
+            <div class="shopping-item">
+              <div class="shopping-dot"></div>
+              <span>تمر عجوة</span>
+              <span class="shopping-count">كيلو</span>
+            </div>
+            <div class="shopping-item checked">
+              <div class="shopping-dot"></div>
+              <span>قهوة سعودية</span>
+              <span class="shopping-count">×١</span>
+            </div>
+            <div class="shopping-item">
+              <div class="shopping-dot"></div>
+              <span>طماطم طازجة</span>
+              <span class="shopping-count">٢ كيلو</span>
+            </div>
+            <div class="shopping-item">
+              <div class="shopping-dot"></div>
+              <span>زيت زيتون بكر</span>
+              <span class="shopping-count">×١</span>
+            </div>
+            <button class="add-button">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              إضافة صنف جديد
+            </button>
+          </div>
+        </div>
+
+        <!-- Maintenance -->
+        <div class="section-card maintenance-card">
+          <div class="section-header">
+            <h3>الصيانة القادمة</h3>
+          </div>
+          <div class="section-body" style="padding: 1rem;">
+            <div class="appliance-item">
+              <div class="appliance-header">
+                <h5>مكيف الصالة الرئيسية</h5>
+                <div class="days-until urgent">٥ أيام</div>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 0.75rem;">
+                غسيل وصيانة دورية — كل ٦ أشهر
+              </p>
+              <div class="progress-bar"><div class="progress-fill" style="width: 92%"></div></div>
+            </div>
+
+            <div class="appliance-item">
+              <div class="appliance-header">
+                <h5>فلتر الماء</h5>
+                <div class="days-until">١٢ يوم</div>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 0.75rem;">
+                تغيير الفلاتر — كل ٣ أشهر
+              </p>
+              <div class="progress-bar"><div class="progress-fill" style="width: 78%"></div></div>
+            </div>
+
+            <div class="appliance-item">
+              <div class="appliance-header">
+                <h5>زيت السيارة</h5>
+                <div class="days-until">٢٨ يوم</div>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 0.75rem;">
+                تغيير الزيت — كل ٥٠٠٠ كم
+              </p>
+              <div class="progress-bar"><div class="progress-fill" style="width: 55%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Interactive task checkboxes
+  document.querySelectorAll('.task-item').forEach(task => {
+    task.addEventListener('click', () => {
+      task.classList.toggle('done');
+    });
+  });
+
+  // Shopping items
+  document.querySelectorAll('.shopping-item').forEach(item => {
+    item.addEventListener('click', () => {
+      item.classList.toggle('checked');
+    });
+  });
+</script>
+</body>
+</html>

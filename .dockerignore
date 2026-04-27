@@ -1,0 +1,31 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+npm-debug.log*
+
+# Next.js
+.next
+out
+
+# Dev files
+.env.local
+.env.development
+*.test.ts
+*.test.tsx
+__tests__
+coverage
+
+# Docs
+*.md
+!README.md
+
+# Scripts غير ضرورية في الـ image
+scripts/backup.sh
+
+# IDE
+.vscode
+.idea
+*.swp

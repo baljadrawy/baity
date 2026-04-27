@@ -1,0 +1,24 @@
+#!/bin/sh
+# ============================================================
+# pre-commit hook — "بيتي"
+# ============================================================
+
+# 1. lint-staged (ESLint + Prettier)
+npx lint-staged
+
+# 2. TypeScript type check
+echo "🔍 TypeScript check..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript errors - fix before committing"
+  exit 1
+fi
+
+# 3. No Indian/Persian digits check
+echo "🔢 Checking for forbidden digits..."
+if git diff --cached --unified=0 | grep -P '[\x{0660}-\x{0669}\x{06F0}-\x{06F9}]'; then
+  echo "❌ Found Indian/Persian digits. Use Western Arabic digits (0-9) only."
+  exit 1
+fi
+
+echo "✅ All checks passed"

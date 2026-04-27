@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>بيتي — غير متصل</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100svh;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .icon { font-size: 4rem; margin-bottom: 1.5rem; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    p { color: #6b7280; font-size: 0.9rem; margin-bottom: 2rem; line-height: 1.6; }
+    button {
+      background: #c9a961;
+      color: white;
+      border: none;
+      border-radius: 0.75rem;
+      padding: 0.875rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 52px;
+    }
+    button:active { opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <div class="icon">📵</div>
+  <h1>أنت غير متصل بالإنترنت</h1>
+  <p>تحقق من اتصالك بالإنترنت وحاول مجدداً.<br />البيانات المحفوظة متاحة للعرض.</p>
+  <button onclick="window.location.reload()">إعادة المحاولة</button>
+</body>
+</html>

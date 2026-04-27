@@ -1,0 +1,89 @@
+# ============================================================
+# docker-compose.prod.yml — بيئة الإنتاج
+# يُشغَّل على Raspberry Pi 4 (ARM) + Hetzner (x86)
+# ============================================================
+
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: baity-app:latest
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgresql://baity:${POSTGRES_PASSWORD}@db:5432/baity
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - baity-net
+    labels:
+      - "caddy=baity.local"
+      - "caddy.reverse_proxy={{upstreams 3000}}"
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: baity
+      POSTGRES_USER: baity
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # PostgreSQL يُعيد الأرقام بصيغة مناسبة (lc_monetary عربي)
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=ar_SA.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baity -d baity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - baity-net
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - baity-net
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - baity-net
+    depends_on:
+      - app
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  baity-net:
+    driver: bridge

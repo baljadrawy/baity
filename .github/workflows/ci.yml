@@ -1,0 +1,190 @@
+# ============================================================
+# CI Pipeline — بيتي
+# يعمل على كل push وكل PR نحو main/dev
+# الترتيب: typecheck → lint → test → build → audit
+# ============================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # ──────────────────────────────────────────
+  # Job 1: Type Check
+  # ──────────────────────────────────────────
+  typecheck:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Type check
+        run: npm run typecheck
+
+  # ──────────────────────────────────────────
+  # Job 2: Lint
+  # ──────────────────────────────────────────
+  lint:
+    name: ESLint + Prettier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Check for forbidden Arabic-Indic digits
+        run: |
+          # الأرقام الهندية ممنوعة: ٠١٢٣٤٥٦٧٨٩ (U+0660-U+0669)
+          # الأرقام الفارسية ممنوعة: ۰۱۲۳۴۵۶۷۸۹ (U+06F0-U+06F9)
+          if grep -r --include="*.ts" --include="*.tsx" -P "[\x{0660}-\x{0669}\x{06F0}-\x{06F9}]" src/; then
+            echo "ERROR: Arabic-Indic or Persian digits found in source code!"
+            echo "Use Western digits (0-9) only. See CLAUDE.md Rule #1."
+            exit 1
+          fi
+          echo "✓ No forbidden digits found"
+
+      - name: Check for literal Arabic text in JSX
+        run: |
+          # نص عربي حرفي في JSX ممنوع — يجب استخدام i18n
+          if grep -rn --include="*.tsx" -P ">[^<{]*[؀-ۿ]+[^<{]*</" src/; then
+            echo "WARNING: Possible literal Arabic text in JSX detected."
+            echo "Use useTranslations() from next-intl instead."
+            # Warning فقط حالياً — سيصبح error لاحقاً
+          fi
+
+  # ──────────────────────────────────────────
+  # Job 3: Tests
+  # ──────────────────────────────────────────
+  test:
+    name: Vitest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run tests
+        run: npm run test -- --coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  # ──────────────────────────────────────────
+  # Job 4: Build
+  # ──────────────────────────────────────────
+  build:
+    name: Next.js Build
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          # Mock للـ build — لا نحتاج DB حقيقي
+          DATABASE_URL: postgresql://mock:mock@localhost:5432/mock
+          NEXTAUTH_SECRET: ci-mock-secret-32-chars-minimum-x
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: npm run build
+
+      - name: Check bundle size
+        run: |
+          # التحقق من حجم الـ bundle
+          BUNDLE_SIZE=$(du -sk .next/static | cut -f1)
+          echo "Bundle size: ${BUNDLE_SIZE}KB"
+          # حد: 5MB للـ static assets
+          if [ $BUNDLE_SIZE -gt 5120 ]; then
+            echo "WARNING: Bundle size (${BUNDLE_SIZE}KB) exceeds 5MB!"
+          fi
+
+  # ──────────────────────────────────────────
+  # Job 5: Security Audit
+  # ──────────────────────────────────────────
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Check for secrets in code
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+        continue-on-error: true

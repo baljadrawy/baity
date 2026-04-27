@@ -1,0 +1,108 @@
+{
+  "name": "بيتي — إدارة المنزل العائلي",
+  "short_name": "بيتي",
+  "description": "منصة سعودية لإدارة شؤون البيت — فواتير، مهام، مشتريات، واقتصاد تربوي للأطفال",
+  "start_url": "/ar/dashboard",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#c9a961",
+  "orientation": "portrait-primary",
+  "lang": "ar",
+  "dir": "rtl",
+  "scope": "/",
+  "categories": ["lifestyle", "productivity", "finance"],
+  "icons": [
+    {
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-dashboard.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "لوحة التحكم الرئيسية"
+    },
+    {
+      "src": "/screenshots/mobile-bills.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "الفواتير الشهرية"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "الفواتير",
+      "short_name": "فواتير",
+      "url": "/ar/bills",
+      "icons": [{ "src": "/icons/shortcut-bills.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "المهام",
+      "short_name": "مهام",
+      "url": "/ar/chores",
+      "icons": [{ "src": "/icons/shortcut-chores.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "المشتريات",
+      "short_name": "مشتريات",
+      "url": "/ar/shopping",
+      "icons": [{ "src": "/icons/shortcut-shopping.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

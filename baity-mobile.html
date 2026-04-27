@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بيتي — Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Amiri:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --olive-deep: #2d3a2e;
+    --olive: #4a5d43;
+    --sand: #e8dcc4;
+    --sand-light: #f5ede0;
+    --cream: #faf6ee;
+    --gold: #c9a961;
+    --ink: #1a1f1a;
+    --ink-soft: #5a635a;
+    --alert: #b84a3e;
+    --alert-soft: #e8b4ae;
+    --success: #6b8e4e;
+    --success-soft: #d4e4c8;
+    --warm: #c97f4a;
+    --warm-soft: #f0d4b8;
+    --info: #4a7d8e;
+    --info-soft: #c5dde2;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    padding: 1rem;
+    padding-bottom: 5rem;
+  }
+  .header {
+    background: var(--olive-deep);
+    color: var(--sand-light);
+    padding: 1.25rem;
+    border-radius: 16px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+  }
+  .logo-mark {
+    width: 44px; height: 44px;
+    background: var(--gold);
+    border-radius: 11px;
+    display: grid; place-items: center;
+    font-family: 'Amiri', serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--olive-deep);
+  }
+  .header h1 { font-family: 'Amiri', serif; font-size: 1.4rem; }
+  .header p { font-size: 0.75rem; opacity: 0.7; margin-top: 2px; }
+  .greeting {
+    background: white;
+    padding: 1rem 1.25rem;
+    border-radius: 14px;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(74, 93, 67, 0.08);
+  }
+  .greeting h2 {
+    font-family: 'Amiri', serif;
+    font-size: 1.5rem;
+    color: var(--olive-deep);
+  }
+  .greeting .date {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    margin-top: 4px;
+  }
+  .greeting .date b { color: var(--olive); }
+  .tabs {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .tab {
+    padding: 0.5rem 0.875rem;
+    border-radius: 8px;
+    border: 1px solid rgba(74, 93, 67, 0.15);
+    background: white;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .tab.active { background: var(--olive-deep); color: var(--sand-light); border-color: var(--olive-deep); }
+  .page { display: none; }
+  .page.active { display: block; }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.625rem;
+    margin-bottom: 1rem;
+  }
+  .stat {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(74, 93, 67, 0.08);
+    border-right: 4px solid var(--olive);
+  }
+  .stat.alert { border-right-color: var(--alert); }
+  .stat.gold { border-right-color: var(--gold); }
+  .stat.warm { border-right-color: var(--warm); }
+  .stat .label { font-size: 0.7rem; color: var(--ink-soft); margin-bottom: 4px; }
+  .stat .value { font-size: 1.4rem; font-weight: 700; }
+  .stat .unit { font-size: 0.75rem; color: var(--ink-soft); font-weight: 400; }
+  .stat .trend { font-size: 0.65rem; color: var(--ink-soft); margin-top: 4px; }
+  .card {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid rgba(74, 93, 67, 0.08);
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+  .card-header {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid rgba(74, 93, 67, 0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-header h3 {
+    font-family: 'Amiri', serif;
+    font-size: 1.1rem;
+    color: var(--olive-deep);
+  }
+  .card-header small {
+    font-size: 0.65rem;
+    color: var(--info);
+    font-weight: 500;
+    background: var(--info-soft);
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-family: 'IBM Plex Sans Arabic';
+  }
+  .item {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px dashed rgba(74, 93, 67, 0.08);
+  }
+  .item:last-child { border-bottom: none; }
+  .bill {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .bill-logo {
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    display: grid; place-items: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+  .bill-logo.sec { background: #0093d0; }
+  .bill-logo.stc { background: #4d148c; }
+  .bill-logo.water { background: #1a7fb8; }
+  .bill-logo.mobily { background: #00965e; }
+  .bill-logo.netflix { background: #e50914; }
+  .bill-info { flex: 1; min-width: 0; }
+  .bill-info h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .bill-info p { font-size: 0.7rem; color: var(--ink-soft); margin-top: 2px; }
+  .recurring {
+    font-size: 0.6rem;
+    background: var(--info-soft);
+    color: var(--info);
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+  .bill-amount {
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+  .bill-amount small {
+    display: block;
+    font-weight: 400;
+    font-size: 0.65rem;
+    color: var(--ink-soft);
+  }
+  .status {
+    margin-top: 6px;
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  .status.due { background: var(--alert-soft); color: var(--alert); }
+  .status.upcoming { background: var(--warm-soft); color: var(--warm); }
+  .status.paid { background: var(--success-soft); color: var(--success); }
+  .chore {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+  }
+  .check {
+    width: 22px; height: 22px;
+    border: 2px solid var(--olive);
+    border-radius: 6px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chore.done .check {
+    background: var(--olive);
+    position: relative;
+  }
+  .chore.done .check::after {
+    content: '✓';
+    position: absolute;
+    inset: 0;
+    color: white;
+    display: grid;
+    place-items: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .chore-body { flex: 1; min-width: 0; }
+  .chore-body h4 { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
+  .chore.done h4 { text-decoration: line-through; color: var(--ink-soft); }
+  .chips { display: flex; gap: 4px; flex-wrap: wrap; }
+  .chip {
+    font-size: 0.65rem;
+    padding: 2px 7px;
+    border-radius: 7px;
+    font-weight: 500;
+  }
+  .chip.period { background: var(--info-soft); color: var(--info); }
+  .chip.assign { background: var(--warm-soft); color: var(--warm); }
+  .chip.due { background: var(--alert-soft); color: var(--alert); }
+  .chip.ok { background: var(--success-soft); color: var(--success); }
+  .chip.points { background: #f5e8cc; color: #8b6f47; }
+  .avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: var(--olive-deep);
+    display: grid; place-items: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .source-tag {
+    background: rgba(74, 125, 142, 0.08);
+    border: 1px dashed var(--info);
+    color: var(--info);
+    padding: 0.625rem 0.875rem;
+    border-radius: 9px;
+    font-size: 0.7rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+  .source-tag b { font-weight: 700; }
+  .form-card {
+    background: linear-gradient(135deg, var(--sand-light) 0%, white 100%);
+    border-radius: 14px;
+    padding: 1rem;
+    border: 1px solid rgba(201, 169, 97, 0.2);
+  }
+  .form-card h3 {
+    font-family: 'Amiri', serif;
+    font-size: 1.2rem;
+    color: var(--olive-deep);
+    margin-bottom: 1rem;
+  }
+  .field { margin-bottom: 0.875rem; }
+  .field label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .field select, .field input {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(74, 93, 67, 0.15);
+    background: white;
+    font-family: inherit;
+    font-size: 0.8rem;
+  }
+  .field .hint {
+    font-size: 0.65rem;
+    color: var(--ink-soft);
+    margin-top: 4px;
+    font-style: italic;
+  }
+  .save-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--olive-deep);
+    color: var(--sand-light);
+    border: none;
+    border-radius: 9px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 0.5rem;
+  }
+  .household-banner {
+    background: linear-gradient(135deg, var(--olive) 0%, var(--olive-deep) 100%);
+    color: var(--sand-light);
+    padding: 0.875rem 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .household-banner .icon {
+    width: 36px; height: 36px;
+    background: var(--gold);
+    color: var(--olive-deep);
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .household-banner h4 {
+    font-family: 'Amiri', serif;
+    font-size: 1rem;
+  }
+  .household-banner p { font-size: 0.7rem; opacity: 0.85; margin-top: 2px; }
+  .child-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #f5e8cc 0%, var(--sand-light) 100%);
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .child-row .name { flex: 1; font-size: 0.85rem; font-weight: 600; }
+  .child-row .pts {
+    font-family: 'Amiri', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--olive-deep);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-mark">ب</div>
+  <div>
+    <h1>بيتي</h1>
+    <p>إدارة المنزل الذكية</p>
+  </div>
+</div>
+
+<div class="greeting">
+  <h2>مرحباً، باسم</h2>
+  <div class="date"><b>الجمعة ٧ ذو القعدة ١٤٤٧</b> · ٢٤ أبريل ٢٠٢٦</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('overview', event)">نظرة عامة</button>
+  <button class="tab" onclick="show('chores', event)">المهام (Grocy)</button>
+  <button class="tab" onclick="show('bills', event)">الفواتير (HomeHub)</button>
+  <button class="tab" onclick="show('addchore', event)">إضافة مهمة</button>
+</div>
+
+<!-- Overview -->
+<div class="page active" id="p-overview">
+
+  <div class="household-banner">
+    <div class="icon">🏠</div>
+    <div>
+      <h4>تدير ٢ بيوت</h4>
+      <p>بيت العائلة (الرياض) + استراحة الطائف</p>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat alert">
+      <div class="label">فواتير مستحقة</div>
+      <div class="value">٨٤٢ <span class="unit">ر.س</span></div>
+      <div class="trend">٣ خلال ٧ أيام</div>
+    </div>
+    <div class="stat">
+      <div class="label">مهام اليوم</div>
+      <div class="value">٥ <span class="unit">/ ٨</span></div>
+      <div class="trend">٣ متبقية</div>
+    </div>
+    <div class="stat gold">
+      <div class="label">قائمة التسوق</div>
+      <div class="value">١٢ <span class="unit">صنف</span></div>
+      <div class="trend">قبل ساعة</div>
+    </div>
+    <div class="stat warm">
+      <div class="label">صيانة قادمة</div>
+      <div class="value">٢ <span class="unit">أجهزة</span></div>
+      <div class="trend">خلال ١٤ يوم</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>إنجازات الأطفال</h3>
+      <small>إضافتنا</small>
+    </div>
+    <div style="padding: 0.75rem;">
+      <div class="child-row">
+        <div class="avatar">ن</div>
+        <div class="name">نورة <div style="font-size:0.65rem;color:var(--ink-soft);font-weight:400;">المركز الأول 🏆</div></div>
+        <div class="pts">٤٥ <small style="font-size:0.55rem;display:block;">نقطة</small></div>
+      </div>
+      <div class="child-row" style="background: linear-gradient(135deg, var(--sand) 0%, var(--sand-light) 100%);">
+        <div class="avatar" style="background: var(--sand);">س</div>
+        <div class="name">سعد <div style="font-size:0.65rem;color:var(--ink-soft);font-weight:400;">٣ مهام متبقية</div></div>
+        <div class="pts">٣٢ <small style="font-size:0.55rem;display:block;">نقطة</small></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Chores Page -->
+<div class="page" id="p-chores">
+  <div class="source-tag">
+    <b>منطق Grocy:</b> ٦ أنواع تكرار + ٤ أنواع إسناد + Dynamic vs Daily
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>المهام الدورية</h3>
+      <small>+١٠ سنوات تطوير</small>
+    </div>
+
+    <div class="item">
+      <div class="chore">
+        <div class="check"></div>
+        <div class="chore-body">
+          <h4>تنظيف فلتر مكيف الصالة</h4>
+          <div class="chips">
+            <span class="chip period">شهري · ١٥</span>
+            <span class="chip assign">إسناد ثابت</span>
+            <span class="chip due">بعد ٥ أيام</span>
+          </div>
+        </div>
+        <div class="avatar">ب</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="chore">
+        <div class="check"></div>
+        <div class="chore-body">
+          <h4>غسيل الملابس البيضاء</h4>
+          <div class="chips">
+            <span class="chip period">أسبوعي · السبت</span>
+            <span class="chip assign">دور أبجدي</span>
+            <span class="chip points">+١٠ نقاط</span>
+          </div>
+        </div>
+        <div class="avatar">س</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="chore">
+        <div class="check"></div>
+        <div class="chore-body">
+          <h4>ري النباتات الداخلية</h4>
+          <div class="chips">
+            <span class="chip period">ديناميكي · كل يومين</span>
+            <span class="chip assign">الأقل تنفيذاً</span>
+            <span class="chip due">يستحق اليوم</span>
+          </div>
+        </div>
+        <div class="avatar">ر</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="chore">
+        <div class="check"></div>
+        <div class="chore-body">
+          <h4>تشغيل غسالة الصحون</h4>
+          <div class="chips">
+            <span class="chip period">يومي · مساءً</span>
+            <span class="chip assign">عشوائي</span>
+            <span class="chip ok">يستهلك: حبة منظف</span>
+          </div>
+        </div>
+        <div class="avatar">ن</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="chore">
+        <div class="check"></div>
+        <div class="chore-body">
+          <h4>صيانة الكهرباء السنوية</h4>
+          <div class="chips">
+            <span class="chip period">سنوي · شعبان</span>
+            <span class="chip assign">المالك</span>
+            <span class="chip ok">بعد ٤ أشهر</span>
+          </div>
+        </div>
+        <div class="avatar">ب</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bills Page -->
+<div class="page" id="p-bills">
+  <div class="source-tag">
+    <b>منطق HomeHub:</b> فواتير عادية + متكررة + تصنيفات ملوّنة + سجل دفعات
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>الفواتير</h3>
+      <small>متكررة + لمرة</small>
+    </div>
+
+    <div class="item">
+      <div class="bill">
+        <div class="bill-logo sec">SEC</div>
+        <div class="bill-info">
+          <h4>كهرباء السعودية <span class="recurring">↻ شهري</span></h4>
+          <p>حساب رقم ٤٨٢١</p>
+          <span class="status due">عاجل</span>
+        </div>
+        <div class="bill-amount">
+          ٤٢٥ ر.س
+          <small>بعد ٣ أيام</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="bill">
+        <div class="bill-logo stc">STC</div>
+        <div class="bill-info">
+          <h4>الاتصالات السعودية <span class="recurring">↻ شهري</span></h4>
+          <p>جوال + إنترنت منزلي</p>
+          <span class="status upcoming">قريباً</span>
+        </div>
+        <div class="bill-amount">
+          ٢٨٠ ر.س
+          <small>بعد ٧ أيام</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="bill">
+        <div class="bill-logo netflix">SHD</div>
+        <div class="bill-info">
+          <h4>شاهد VIP <span class="recurring">↻ شهري</span></h4>
+          <p>تجديد تلقائي</p>
+          <span class="status upcoming">قريباً</span>
+        </div>
+        <div class="bill-amount">
+          ٤٦ ر.س
+          <small>بعد ١٠ أيام</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="bill">
+        <div class="bill-logo water">WTR</div>
+        <div class="bill-info">
+          <h4>المياه الوطنية <span class="recurring">↻ ربعي</span></h4>
+          <p>فاتورة ربع سنوية</p>
+          <span class="status upcoming">قريباً</span>
+        </div>
+        <div class="bill-amount">
+          ١٣٧ ر.س
+          <small>بعد ١٢ يوم</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="bill">
+        <div class="bill-logo mobily">MOB</div>
+        <div class="bill-info">
+          <h4>موبايلي <span class="recurring">↻ شهري</span></h4>
+          <p>خط بيانات احتياطي</p>
+          <span class="status paid">مدفوعة</span>
+        </div>
+        <div class="bill-amount">
+          ٩٥ ر.س
+          <small>دُفعت ١٥ شوال</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Chore Form -->
+<div class="page" id="p-addchore">
+  <div class="source-tag">
+    <b>نموذج بمنطق Grocy كامل</b><br>٦ أنواع تكرار + ٤ أنواع إسناد + خيارات متقدمة
+  </div>
+
+  <div class="form-card">
+    <h3>مهمة دورية جديدة</h3>
+
+    <div class="field">
+      <label>اسم المهمة</label>
+      <input type="text" value="تنظيف فلتر مكيف الصالة" />
+    </div>
+
+    <div class="field">
+      <label>نوع التكرار</label>
+      <select>
+        <option>يدوي — لا تكرار آلي</option>
+        <option>يومي — كل X يوم</option>
+        <option>أسبوعي — يوم محدد</option>
+        <option selected>شهري — تاريخ محدد</option>
+        <option>سنوي</option>
+        <option>ديناميكي — X يوم بعد آخر تنفيذ</option>
+      </select>
+      <p class="hint">الديناميكي يضمن انتظام التنفيذ بغض النظر عن التأخير</p>
+    </div>
+
+    <div class="field">
+      <label>نوع الإسناد</label>
+      <select>
+        <option>بدون إسناد</option>
+        <option>ثابت لشخص واحد</option>
+        <option>عشوائي</option>
+        <option>دور أبجدي</option>
+        <option selected>الأقل تنفيذاً (عدالة آلية)</option>
+      </select>
+      <p class="hint">يحل مشكلة "نفس الشخص يسوي كل شي"</p>
+    </div>
+
+    <div class="field">
+      <label>النقاط (للأطفال)</label>
+      <input type="number" value="20" />
+      <p class="hint">إضافتنا — لتشجيع الأطفال</p>
+    </div>
+
+    <div class="field">
+      <label>تنبيه قبل (يوم)</label>
+      <input type="number" value="3" />
+      <p class="hint">تنبيه Telegram + تطبيق</p>
+    </div>
+
+    <div class="field">
+      <label style="display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" checked style="width: auto;" />
+        <span>تأجيل تلقائي عند التأخر (Rollover)</span>
+      </label>
+    </div>
+
+    <button class="save-btn">حفظ المهمة</button>
+  </div>
+</div>
+
+<script>
+  function show(id, e) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('p-' + id).classList.add('active');
+    e.target.classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('.chore').forEach(c => {
+    c.addEventListener('click', () => c.classList.toggle('done'));
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,610 @@
+// ============================================================
+// Prisma Schema — "بيتي"
+// المبادئ:
+// 1. كل جدول يحوي householdId (Multi-Tenancy)
+// 2. كل مبلغ مالي = Decimal @db.Decimal(10,2) — لا Float
+// 3. Soft deletes بـ deletedAt — لا DELETE مباشر
+// 4. UUID/CUID فقط — لا auto-increment integers
+// 5. createdAt + updatedAt على كل جدول
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// === CORE — المستخدمون والعائلات ===
+// ============================================================
+
+model User {
+  id          String   @id @default(cuid())
+  phone       String   @unique
+  name        String
+  avatarUrl   String?
+  /// مهم لتحديد سن الطفل تلقائياً
+  birthDate   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  /// Soft delete
+  deletedAt   DateTime?
+
+  memberships HouseholdMember[]
+
+  @@index([phone])
+  @@map("users")
+}
+
+model Household {
+  id        String   @id @default(cuid())
+  name      String
+  city      String?
+  /// رمز ربط Telegram Bot
+  telegramChatId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  members       HouseholdMember[]
+  bills         Bill[]
+  chores        Chore[]
+  shoppingLists ShoppingList[]
+  appliances    Appliance[]
+  archives      DocumentArchive[]
+  jobMenuItems  JobMenuItem[]
+
+  @@map("households")
+}
+
+model HouseholdMember {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  household   Household @relation(fields: [householdId], references: [id])
+  householdId String
+  role        Role      @default(MEMBER)
+  /// مهم لمنيو الأعمال — يُحسب من birthDate إذا لم يُدخل
+  age         Int?
+  points      Int       @default(0)
+  joinedAt    DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  wallet       ChildWallet?
+  jobInstances JobInstance[]
+
+  @@unique([userId, householdId])
+  @@index([householdId])
+  @@map("household_members")
+}
+
+enum Role {
+  OWNER  // صاحب البيت
+  ADMIN  // ولي أمر إضافي
+  MEMBER // عضو بالغ
+  CHILD  // طفل (4-12)
+}
+
+// ============================================================
+// === BILLS — الفواتير (HomeHub-inspired) ===
+// ============================================================
+
+model Bill {
+  id              String    @id @default(cuid())
+  household       Household @relation(fields: [householdId], references: [id])
+  householdId     String
+  title           String
+  category        BillCategory
+  provider        String?
+  accountNumber   String?
+  /// القاعدة: Decimal لا Float
+  amount          Decimal   @db.Decimal(10, 2)
+  dueDate         DateTime
+  isRecurring     Boolean   @default(false)
+  recurrencePeriod RecurrencePeriod?
+  status          BillStatus @default(PENDING)
+  paidAt          DateTime?
+  attachmentUrl   String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  payments BillPayment[]
+
+  @@index([householdId])
+  @@index([householdId, status])
+  @@index([householdId, dueDate])
+  @@map("bills")
+}
+
+enum BillStatus {
+  PENDING
+  DUE
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum BillCategory {
+  ELECTRICITY
+  WATER
+  TELECOM
+  INTERNET
+  SUBSCRIPTION
+  RENT
+  INSURANCE
+  OTHER
+}
+
+enum RecurrencePeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  YEARLY
+}
+
+model BillPayment {
+  id      String   @id @default(cuid())
+  bill    Bill     @relation(fields: [billId], references: [id])
+  billId  String
+  /// Decimal — لا Float
+  amount  Decimal  @db.Decimal(10, 2)
+  paidAt  DateTime
+  notes   String?
+  paidBy  String?  // member ID
+
+  @@index([billId])
+  @@map("bill_payments")
+}
+
+// ============================================================
+// === CHORES — المهام الدورية (Grocy Algorithm) ===
+// ============================================================
+
+model Chore {
+  id                 String    @id @default(cuid())
+  household          Household @relation(fields: [householdId], references: [id])
+  householdId        String
+  name               String
+  description        String?
+  /// نوع التكرار — 6 استراتيجيات من Grocy
+  periodType         PeriodType
+  /// عدد الأيام (لـ DAILY, DYNAMIC_REGULAR)
+  periodDays         Int?
+  /// يوم الأسبوع 0=Sunday (لـ WEEKLY)
+  periodWeekDay      Int?
+  /// يوم الشهر 1-31 (لـ MONTHLY)
+  periodMonthDay     Int?
+  /// نوع التوزيع — 5 خوارزميات
+  assignmentType     AssignmentType @default(NO_ASSIGNMENT)
+  /// member IDs (لـ FIXED/خوارزميات محددة)
+  assignedMemberIds  String[]
+  firstExecutionDate DateTime   @default(now())
+  nextDueDate        DateTime?
+  lastExecutedAt     DateTime?
+  lastExecutedById   String?    // member ID
+  /// تتبع التاريخ فقط (بدون وقت محدد)
+  trackDateOnly      Boolean    @default(false)
+  /// تحريك الموعد للغد إذا فات (لا تتراكم)
+  dueDateRollover    Boolean    @default(true)
+  pointsReward       Int        @default(0)
+  notifyBeforeDays   Int        @default(1)
+  isActive           Boolean    @default(true)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  deletedAt          DateTime?
+
+  executions ChoreExecution[]
+
+  @@index([householdId])
+  @@index([householdId, nextDueDate])
+  @@index([householdId, isActive])
+  @@map("chores")
+}
+
+/// 6 استراتيجيات التكرار (من Grocy)
+enum PeriodType {
+  MANUALLY        // يدوي — المستخدم يحدد الموعد
+  DAILY           // كل X يوم منتظم
+  DYNAMIC_REGULAR // X يوم بعد آخر تنفيذ فعلي
+  WEEKLY          // أسبوعي (يوم محدد)
+  MONTHLY         // شهري (تاريخ محدد)
+  YEARLY          // سنوي
+}
+
+/// 5 خوارزميات التوزيع (من Grocy)
+enum AssignmentType {
+  NO_ASSIGNMENT         // بدون إسناد — أي شخص
+  WHO_LEAST_DID_IT_FIRST // للأقل تنفيذاً (عدالة آلية) ⭐
+  RANDOM                // عشوائي
+  IN_ALPHABETIC_ORDER   // أبجدي دوري
+  FIXED                 // ثابت لشخص معيّن
+}
+
+model ChoreExecution {
+  id            String   @id @default(cuid())
+  chore         Chore    @relation(fields: [choreId], references: [id])
+  choreId       String
+  executedById  String   // member ID
+  executedAt    DateTime @default(now())
+  notes         String?
+  pointsAwarded Int      @default(0)
+
+  @@index([choreId])
+  @@index([choreId, executedAt])
+  @@map("chore_executions")
+}
+
+// ============================================================
+// === SHOPPING — قوائم المشتريات ===
+// ============================================================
+
+model ShoppingList {
+  id          String    @id @default(cuid())
+  household   Household @relation(fields: [householdId], references: [id])
+  householdId String
+  name        String
+  isShared    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  items ShoppingItem[]
+
+  @@index([householdId])
+  @@map("shopping_lists")
+}
+
+model ShoppingItem {
+  id           String       @id @default(cuid())
+  list         ShoppingList @relation(fields: [listId], references: [id])
+  listId       String
+  name         String
+  category     String?
+  quantity     String?
+  unit         String?
+  /// سعر تقديري — Decimal
+  estimatedPrice Decimal?   @db.Decimal(10, 2)
+  urgency      Urgency      @default(MEDIUM)
+  store        String?
+  isChecked    Boolean      @default(false)
+  addedById    String       // member ID
+  checkedById  String?      // member ID
+  checkedAt    DateTime?
+  createdAt    DateTime     @default(now())
+
+  @@index([listId])
+  @@index([listId, isChecked])
+  @@map("shopping_items")
+}
+
+enum Urgency {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+// ============================================================
+// === APPLIANCES + WARRANTY — الأجهزة والضمانات ===
+// ============================================================
+
+model Appliance {
+  id               String    @id @default(cuid())
+  household        Household @relation(fields: [householdId], references: [id])
+  householdId      String
+  name             String    // "مكيف الصالة"
+  brand            String?   // "LG", "Samsung"
+  model            String?   // "AC-2024-X"
+  serialNumber     String?
+  category         String?   // "تكييف", "مطبخ", "إلكترونيات"
+  location         String?   // "الصالة", "غرفة النوم الرئيسية"
+
+  // معلومات الشراء
+  purchaseDate     DateTime?
+  /// Decimal لا Float
+  purchasePrice    Decimal?  @db.Decimal(10, 2)
+  store            String?
+  storeOrderNumber String?
+
+  // الضمان
+  warrantyStart    DateTime?
+  warrantyEnd      DateTime?
+  warrantyMonths   Int?
+  warrantyType     WarrantyType @default(MANUFACTURER)
+  warrantyContact  String?
+  warrantyNotes    String?
+  /// تنبيه قبل X يوم (افتراضي 30)
+  warrantyNotifyDaysBefore Int @default(30)
+
+  imageUrl  String?
+  notes     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  schedules  MaintenanceSchedule[]
+  documents  WarrantyDocument[]
+
+  @@index([householdId])
+  @@index([householdId, isActive])
+  @@index([householdId, warrantyEnd])
+  @@map("appliances")
+}
+
+enum WarrantyType {
+  MANUFACTURER // ضمان الشركة المصنّعة
+  STORE        // ضمان المتجر
+  EXTENDED     // ضمان ممتد مدفوع
+  THIRD_PARTY  // طرف ثالث
+  NONE         // بدون ضمان
+}
+
+model WarrantyDocument {
+  id           String      @id @default(cuid())
+  appliance    Appliance   @relation(fields: [applianceId], references: [id], onDelete: Cascade)
+  applianceId  String
+  type         DocumentType
+  title        String
+  fileUrl      String
+  fileName     String
+  fileSize     Int         // بالبايت
+  mimeType     String
+  thumbnailUrl String?
+  /// نص OCR للبحث
+  ocrText      String?     @db.Text
+  uploadedById String      // member ID
+  uploadedAt   DateTime    @default(now())
+
+  @@index([applianceId])
+  @@index([applianceId, type])
+  @@map("warranty_documents")
+}
+
+enum DocumentType {
+  PURCHASE_INVOICE // فاتورة الشراء (الأهم)
+  WARRANTY_CARD    // كرت الضمان
+  USER_MANUAL      // دليل الاستخدام
+  RECEIPT          // إيصال
+  SERVICE_REPORT   // تقرير صيانة
+  PRODUCT_PHOTO    // صورة المنتج
+  OTHER
+}
+
+model MaintenanceSchedule {
+  id               String    @id @default(cuid())
+  appliance        Appliance @relation(fields: [applianceId], references: [id])
+  applianceId      String
+  taskName         String
+  intervalDays     Int
+  lastDoneAt       DateTime?
+  nextDueAt        DateTime
+  notifyBeforeDays Int       @default(7)
+  isActive         Boolean   @default(true)
+
+  history MaintenanceLog[]
+
+  @@index([applianceId])
+  @@map("maintenance_schedules")
+}
+
+model MaintenanceLog {
+  id          String              @id @default(cuid())
+  schedule    MaintenanceSchedule @relation(fields: [scheduleId], references: [id])
+  scheduleId  String
+  doneAt      DateTime            @default(now())
+  doneById    String?             // member ID
+  /// Decimal لا Float
+  cost        Decimal?            @db.Decimal(10, 2)
+  notes       String?
+  attachmentUrl String?
+
+  @@index([scheduleId])
+  @@map("maintenance_logs")
+}
+
+// ============================================================
+// === DOCUMENT ARCHIVE — أرشيف الوثائق العام ===
+// ============================================================
+
+model DocumentArchive {
+  id               String          @id @default(cuid())
+  household        Household       @relation(fields: [householdId], references: [id])
+  householdId      String
+  category         ArchiveCategory
+  title            String
+  description      String?
+  fileUrl          String
+  fileName         String
+  fileSize         Int
+  mimeType         String
+  thumbnailUrl     String?
+  ocrText          String?         @db.Text
+  documentDate     DateTime?
+  expiryDate       DateTime?
+  notifyBeforeDays Int?
+  tags             String[]
+  uploadedById     String          // member ID
+  uploadedAt       DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+
+  @@index([householdId])
+  @@index([householdId, category])
+  @@index([householdId, expiryDate])
+  @@map("document_archives")
+}
+
+enum ArchiveCategory {
+  INVOICE    // فواتير عامة
+  CONTRACT   // عقود
+  INSURANCE  // تأمين
+  GOVERNMENT // وثائق حكومية
+  MEDICAL    // طبية
+  EDUCATION  // تعليمية
+  PROPERTY   // عقارات
+  VEHICLE    // سيارات
+  OTHER
+}
+
+// ============================================================
+// === HOUSE ECONOMY — اقتصاد البيت للأطفال ⭐ ===
+// ============================================================
+
+model JobMenuItem {
+  id               String    @id @default(cuid())
+  household        Household @relation(fields: [householdId], references: [id])
+  householdId      String
+  title            String
+  description      String?
+  imageUrl         String?
+  /// للأطفال الصغار (4-6) — يُعرض بدلاً من النص
+  iconEmoji        String?
+  /// المكافأة — Decimal لا Float
+  reward           Decimal   @db.Decimal(8, 2)
+  estimatedMinutes Int?
+  minAge           Int       @default(4)
+  maxAge           Int?
+  category         String?   // "تنظيف", "ترتيب", "حديقة", "مطبخ"
+  isActive         Boolean   @default(true)
+  /// member IDs — فارغ = متاح للجميع
+  availableForIds  String[]
+  weeklyLimit      Int?      // حد أسبوعي
+  difficulty       Difficulty @default(EASY)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  instances JobInstance[]
+
+  @@index([householdId])
+  @@index([householdId, isActive])
+  @@map("job_menu_items")
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model JobInstance {
+  id            String          @id @default(cuid())
+  jobMenuItem   JobMenuItem     @relation(fields: [jobMenuItemId], references: [id])
+  jobMenuItemId String
+  child         HouseholdMember @relation(fields: [childId], references: [id])
+  childId       String
+  status        JobStatus       @default(STARTED)
+  startedAt     DateTime        @default(now())
+  completedAt   DateTime?
+  approvedAt    DateTime?
+  approvedById  String?         // parent member ID
+  beforePhotoUrl String?
+  afterPhotoUrl  String?
+  /// المبلغ المعتمد (قد يختلف عن reward الأصلي)
+  approvedAmount Decimal?       @db.Decimal(8, 2)
+  parentNotes    String?
+  /// مكافأة إضافية من الوالد
+  bonusAmount    Decimal        @default(0) @db.Decimal(8, 2)
+
+  @@index([childId])
+  @@index([jobMenuItemId])
+  @@index([childId, status])
+  @@map("job_instances")
+}
+
+enum JobStatus {
+  STARTED   // بدأ الطفل
+  SUBMITTED // رفع الصور، بانتظار الموافقة
+  APPROVED  // وافق الوالد
+  PARTIAL   // موافقة جزئية
+  REJECTED  // مرفوض
+}
+
+model ChildWallet {
+  id          String          @id @default(cuid())
+  member      HouseholdMember @relation(fields: [memberId], references: [id])
+  memberId    String          @unique
+  /// الرصيد الحالي — Decimal
+  balance     Decimal         @default(0) @db.Decimal(10, 2)
+  totalEarned Decimal         @default(0) @db.Decimal(10, 2)
+  totalSpent  Decimal         @default(0) @db.Decimal(10, 2)
+  totalSaved  Decimal         @default(0) @db.Decimal(10, 2)
+  totalCharity Decimal        @default(0) @db.Decimal(10, 2)
+
+  /// توزيع كل مكافأة تلقائياً (يجب أن يجمع ≤ 100)
+  spendPercent   Int @default(50)
+  savePercent    Int @default(30)
+  charityPercent Int @default(10)
+  surprisePercent Int @default(10)
+
+  /// حد أسبوعي من الوالد
+  weeklyEarningsLimit Decimal? @db.Decimal(8, 2)
+  updatedAt    DateTime @updatedAt
+
+  goals        SavingsGoal[]
+  transactions WalletTransaction[]
+
+  @@map("child_wallets")
+}
+
+model SavingsGoal {
+  id            String      @id @default(cuid())
+  wallet        ChildWallet @relation(fields: [walletId], references: [id])
+  walletId      String
+  title         String
+  targetAmount  Decimal     @db.Decimal(10, 2)
+  currentAmount Decimal     @default(0) @db.Decimal(10, 2)
+  imageUrl      String?
+  achievedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([walletId])
+  @@map("savings_goals")
+}
+
+model WalletTransaction {
+  id           String          @id @default(cuid())
+  wallet       ChildWallet     @relation(fields: [walletId], references: [id])
+  walletId     String
+  /// يمكن أن يكون سالباً (صرف، صدقة)
+  amount       Decimal         @db.Decimal(8, 2)
+  type         TransactionType
+  description  String
+  relatedJobId String?
+  approvedById String?         // parent member ID
+  createdAt    DateTime        @default(now())
+
+  @@index([walletId])
+  @@index([walletId, createdAt])
+  @@map("wallet_transactions")
+}
+
+enum TransactionType {
+  JOB_REWARD       // مكافأة عمل
+  BONUS            // مكافأة إضافية من الوالد
+  SPEND            // صرف
+  SAVE_DEPOSIT     // إيداع في الادخار
+  CHARITY          // صدقة
+  GIFT             // هدية
+  TRANSFER         // تحويل بين أطفال
+  WEEKLY_ALLOWANCE // مصروف أسبوعي ثابت
+}
+
+// ============================================================
+// === SAAS — (مُعطَّل حالياً، يُفعَّل عند قرار SaaS) ===
+// ============================================================
+
+/// مُعطَّل — يُفعَّل بـ migration واحد عند قرار SaaS
+/// model Subscription { ... }
+/// model BillingEvent { ... }
+/// enum SubscriptionPlan { FREE_TRIAL FAMILY_MONTHLY FAMILY_YEARLY FAMILY_LIFETIME }
+/// enum SubscriptionStatus { ACTIVE PAST_DUE CANCELLED EXPIRED IN_TRIAL }
