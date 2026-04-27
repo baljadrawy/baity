@@ -13,7 +13,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci --only=production && \
+RUN npm ci --omit=dev --ignore-scripts && \
     npx prisma generate
 
 # ---------- Stage 2: builder ----------
@@ -21,7 +21,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 COPY . .
 COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
