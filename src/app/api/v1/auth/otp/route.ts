@@ -1,22 +1,26 @@
 /**
  * POST /api/v1/auth/otp
- * إرسال OTP عبر Supabase Auth (Phone OTP)
+ * إرسال رمز OTP عبر Telegram (مجاني، بديل عن Supabase Phone OTP)
  *
  * Body: { phone: string }
- * Response: { message: string }
- *
- * القواعد:
- * - Rate limiting: 5 req/دقيقة/IP
- * - Phone: سعودي فقط (يبدأ بـ 05)
- * - لا كلمات مرور — OTP فقط
+ * Response:
+ *   200 — { message } — رُسل
+ *   404 — { error: 'not_linked', botUsername } — يحتاج /start البوت أولاً
+ *   422 — تحقق من الـ schema فشل
+ *   429 — rate limit
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { createHash, randomInt } from 'crypto';
+import { prisma } from '@/core/db/prisma';
 import { convertToWesternDigits } from '@/core/i18n/format-number';
 import { handleApiError } from '@/core/db/with-household';
+import { rateLimits, getClientIp } from '@/core/security/rate-limit';
+import { sendMessage } from '@/core/notifications/telegram';
 
-// Zod schema للـ phone
+const OTP_EXPIRY_MIN = 5;
+
 const otpRequestSchema = z.object({
   phone: z
     .string()
@@ -28,19 +32,71 @@ const otpRequestSchema = z.object({
     ),
 });
 
+function hashCode(code: string): string {
+  return createHash('sha256').update(code).digest('hex');
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req.headers);
+    const { success } = rateLimits.auth(ip);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'rate_limited', message: 'طلبات كثيرة، حاول بعد دقيقة' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { phone } = otpRequestSchema.parse(body);
 
-    // TODO: تفعيل Supabase Auth
-    // const supabase = createClient(serverEnv.supabaseUrl, serverEnv.supabaseServiceRoleKey);
-    // const { error } = await supabase.auth.signInWithOtp({ phone });
-    // if (error) throw error;
+    // ابحث عن المستخدم — إن لم يوجد، أنشئه (placeholder name، يكتمل في onboarding)
+    let user = await prisma.user.findUnique({ where: { phone } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: { phone, name: phone },
+      });
+    }
 
-    // مؤقت للتطوير — نُعيد نجاحاً دائماً
-    if (process.env['NODE_ENV'] === 'development') {
-      console.log(`[DEV] OTP لـ ${phone}: 1234`);
+    // تحقق أن المستخدم ربط Telegram
+    if (!user.telegramChatId) {
+      const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? 'baity_bot';
+      return NextResponse.json(
+        {
+          error: 'not_linked',
+          message: 'يلزم ربط حسابك بـ Telegram أولاً',
+          botUsername,
+        },
+        { status: 404 }
+      );
+    }
+
+    // ولّد كود من 6 أرقام
+    const code = String(randomInt(100000, 1000000));
+    const codeHash = hashCode(code);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MIN * 60_000);
+
+    // ألغِ الأكواد السابقة غير المستخدمة لنفس المستخدم (لمنع stack)
+    await prisma.otpCode.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    await prisma.otpCode.create({
+      data: { userId: user.id, codeHash, expiresAt },
+    });
+
+    // أرسل عبر Telegram
+    const sent = await sendMessage(
+      user.telegramChatId,
+      `🔐 رمز تسجيل الدخول إلى <b>بيتي</b>:\n\n<code>${code}</code>\n\nصالح لمدة ${OTP_EXPIRY_MIN} دقائق. لا تشاركه مع أحد.`
+    );
+
+    if (!sent) {
+      return NextResponse.json(
+        { error: 'send_failed', message: 'فشل إرسال الرمز عبر Telegram' },
+        { status: 502 }
+      );
     }
 
     return NextResponse.json(

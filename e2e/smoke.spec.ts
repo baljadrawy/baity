@@ -29,18 +29,27 @@ test('login page renders title and phone input', async ({ page }) => {
 });
 
 test('OTP endpoint validates Saudi phone format', async ({ request }) => {
-  // رقم غير صالح (دولي) — يجب أن يُرفض (API يُرجع 422 من Zod)
+  // رقم غير صالح (دولي) — يُرفض من Zod بـ 422
   const bad = await request.post('/api/v1/auth/otp', {
     data: { phone: '+966501234567' },
   });
-  expect(bad.status()).toBeGreaterThanOrEqual(400);
-  expect(bad.status()).toBeLessThan(500);
+  expect(bad.status()).toBe(422);
 
-  // رقم سعودي صحيح — يجب أن يُقبل (200 حتى لو OTP لم يُرسل فعلياً)
+  // رقم سعودي صحيح لمستخدم لم يربط Telegram → 404 not_linked + botUsername
   const good = await request.post('/api/v1/auth/otp', {
     data: { phone: '0501234567' },
   });
-  expect(good.status()).toBe(200);
+  expect(good.status()).toBe(404);
+  const body = await good.json();
+  expect(body.error).toBe('not_linked');
+  expect(body.botUsername).toBeTruthy();
+});
+
+test('internal telegram-link endpoint requires secret', async ({ request }) => {
+  const res = await request.post('/api/v1/internal/telegram-link', {
+    data: { phone: '0501234567', chatId: '12345' },
+  });
+  expect(res.status()).toBe(401);
 });
 
 test('locale prefix enforced: dashboard redirects to login when unauthenticated', async ({

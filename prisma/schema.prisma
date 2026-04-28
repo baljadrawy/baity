@@ -29,15 +29,35 @@ model User {
   avatarUrl   String?
   /// مهم لتحديد سن الطفل تلقائياً
   birthDate   DateTime?
+  /// Telegram chat_id الشخصي — يُربط مرة واحدة عند /start في البوت
+  /// يُستخدم لإرسال OTP وتنبيهات شخصية (مختلف عن Household.telegramChatId المشترك)
+  telegramChatId String? @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   /// Soft delete
   deletedAt   DateTime?
 
   memberships HouseholdMember[]
+  otpCodes    OtpCode[]
 
   @@index([phone])
   @@map("users")
+}
+
+/// كود OTP لتسجيل الدخول — يُولَّد ويُرسل عبر Telegram، مدته 5 دقائق
+model OtpCode {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  /// SHA-256 من الكود (لا نخزّن plaintext)
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("otp_codes")
 }
 
 model Household {

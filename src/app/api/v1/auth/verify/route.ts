@@ -1,24 +1,22 @@
 /**
  * POST /api/v1/auth/verify
- * التحقق من OTP وإصدار JWT
+ * التحقق من OTP المُولَّد محلياً وإرسالُه عبر Telegram، ثم إصدار JWT.
  *
  * Body: { phone, otp, householdId? }
  * Response: { user, member, tokens } + Set-Cookie (httpOnly)
- *
- * التدفق:
- * 1. تحقق من OTP عبر Supabase
- * 2. ابحث أو أنشئ User
- * 3. إذا householdId → تحقق من العضوية
- * 4. أصدر JWT pair وضعه في httpOnly cookies
  */
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { createHash } from 'crypto';
 import { prisma } from '@/core/db/prisma';
 import { handleApiError } from '@/core/db/with-household';
 import { generateParentTokens } from '@/core/auth/jwt';
 import { buildSessionCookies } from '@/core/auth/authenticate';
 import { convertToWesternDigits } from '@/core/i18n/format-number';
+import { rateLimits, getClientIp } from '@/core/security/rate-limit';
+
+const MAX_ATTEMPTS = 5;
 
 const verifySchema = z.object({
   phone: z
@@ -32,31 +30,86 @@ const verifySchema = z.object({
   householdId: z.string().optional(),
 });
 
+function hashCode(code: string): string {
+  return createHash('sha256').update(code).digest('hex');
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req.headers);
+    const { success } = rateLimits.auth(ip);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'rate_limited', message: 'محاولات كثيرة، حاول بعد دقيقة' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { phone, otp, householdId } = verifySchema.parse(body);
 
-    // TODO: التحقق من OTP عبر Supabase
-    // const supabase = createClient(supabaseUrl, serviceRoleKey);
-    // const { data, error } = await supabase.auth.verifyOtp({ phone, token: otp, type: 'sms' });
-    // if (error) throw new UnauthorizedError('invalid OTP');
-
-    // مؤقت للتطوير
-    if (process.env['NODE_ENV'] === 'development' && otp !== '1234') {
-      return NextResponse.json({ error: 'invalid OTP' }, { status: 401 });
-    }
-
-    // البحث أو إنشاء User
-    let user = await prisma.user.findUnique({ where: { phone } });
+    const user = await prisma.user.findUnique({ where: { phone } });
     if (!user) {
-      user = await prisma.user.create({
-        data: { phone, name: phone }, // الاسم يُحدَّث لاحقاً في الـ onboarding
-      });
+      return NextResponse.json(
+        { error: 'invalid_otp', message: 'رمز التحقق غير صحيح' },
+        { status: 401 }
+      );
     }
 
-    // البحث عن العضوية
-    let member = householdId
+    // أحدث كود غير مستخدم لهذا المستخدم
+    const otpRecord = await prisma.otpCode.findFirst({
+      where: { userId: user.id, usedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!otpRecord) {
+      return NextResponse.json(
+        { error: 'invalid_otp', message: 'لا يوجد رمز فعّال — اطلب رمزاً جديداً' },
+        { status: 401 }
+      );
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      await prisma.otpCode.update({
+        where: { id: otpRecord.id },
+        data: { usedAt: new Date() },
+      });
+      return NextResponse.json(
+        { error: 'expired_otp', message: 'انتهت صلاحية الرمز — اطلب رمزاً جديداً' },
+        { status: 401 }
+      );
+    }
+
+    if (otpRecord.attempts >= MAX_ATTEMPTS) {
+      await prisma.otpCode.update({
+        where: { id: otpRecord.id },
+        data: { usedAt: new Date() },
+      });
+      return NextResponse.json(
+        { error: 'max_attempts', message: 'تجاوزت عدد المحاولات — اطلب رمزاً جديداً' },
+        { status: 401 }
+      );
+    }
+
+    if (otpRecord.codeHash !== hashCode(otp)) {
+      await prisma.otpCode.update({
+        where: { id: otpRecord.id },
+        data: { attempts: { increment: 1 } },
+      });
+      return NextResponse.json(
+        { error: 'invalid_otp', message: 'رمز التحقق غير صحيح' },
+        { status: 401 }
+      );
+    }
+
+    // ✓ صحيح — علّمه مستخدماً
+    await prisma.otpCode.update({
+      where: { id: otpRecord.id },
+      data: { usedAt: new Date() },
+    });
+
+    // العضوية
+    const member = householdId
       ? await prisma.householdMember.findUnique({
           where: { userId_householdId: { userId: user.id, householdId } },
         })
@@ -65,19 +118,22 @@ export async function POST(req: NextRequest) {
           orderBy: { joinedAt: 'asc' },
         });
 
-    // إذا لم يكن عضواً بعد → يحتاج Onboarding
     if (!member) {
+      const { signJwt } = await import('@/core/auth/jwt');
+      const tempToken = await signJwt(
+        { sub: user.id, householdId: '', memberId: '', role: 'MEMBER', name: '' },
+        5 * 60
+      );
       return NextResponse.json(
         {
           needsOnboarding: true,
           userId: user.id,
-          accessToken: await generateTempToken(user.id),
+          accessToken: tempToken,
         },
         { status: 200 }
       );
     }
 
-    // إصدار JWT pair
     const tokens = await generateParentTokens({
       sub: user.id,
       householdId: member.householdId,
@@ -87,7 +143,6 @@ export async function POST(req: NextRequest) {
     });
 
     const cookies = buildSessionCookies(tokens.accessToken, tokens.refreshToken);
-
     const response = NextResponse.json(
       {
         user: { id: user.id, name: user.name, phone: user.phone },
@@ -96,10 +151,8 @@ export async function POST(req: NextRequest) {
       },
       { status: 200 }
     );
-
     response.headers.append('Set-Cookie', cookies.session);
     response.headers.append('Set-Cookie', cookies.refresh);
-
     return response;
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -110,13 +163,4 @@ export async function POST(req: NextRequest) {
     }
     return handleApiError(error);
   }
-}
-
-// مؤقت — يُستبدل بـ Supabase session
-async function generateTempToken(userId: string): Promise<string> {
-  const { signJwt } = await import('@/core/auth/jwt');
-  return signJwt(
-    { sub: userId, householdId: '', memberId: '', role: 'MEMBER', name: '' },
-    5 * 60 // 5 دقائق فقط للـ onboarding
-  );
 }

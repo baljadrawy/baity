@@ -19,6 +19,8 @@ interface UseOtpLoginReturn {
   phone: string;
   isLoading: boolean;
   error: string | null;
+  /** اسم البوت عند الحاجة لربط Telegram (when error === 'not_linked') */
+  botUsername: string | null;
   sendOtp: (phone: string) => Promise<void>;
   verifyOtp: (otp: string) => Promise<void>;
   goBack: () => void;
@@ -29,12 +31,14 @@ export function useOtpLogin(): UseOtpLoginReturn {
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [botUsername, setBotUsername] = useState<string | null>(null);
   const router = useRouter();
   const locale = useLocale();
 
   const sendOtp = async (rawPhone: string) => {
     setIsLoading(true);
     setError(null);
+    setBotUsername(null);
     try {
       const res = await fetch('/api/v1/auth/otp', {
         method: 'POST',
@@ -43,7 +47,10 @@ export function useOtpLogin(): UseOtpLoginReturn {
       });
 
       if (!res.ok) {
-        const data = await res.json() as { error?: string };
+        const data = (await res.json()) as { error?: string; botUsername?: string };
+        if (data.error === 'not_linked' && data.botUsername) {
+          setBotUsername(data.botUsername);
+        }
         throw new Error(data.error ?? 'otp_send_failed');
       }
 
@@ -92,5 +99,5 @@ export function useOtpLogin(): UseOtpLoginReturn {
     setError(null);
   };
 
-  return { step, phone, isLoading, error, sendOtp, verifyOtp, goBack };
+  return { step, phone, isLoading, error, botUsername, sendOtp, verifyOtp, goBack };
 }

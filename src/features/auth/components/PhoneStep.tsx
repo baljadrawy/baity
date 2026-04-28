@@ -13,9 +13,11 @@ interface PhoneStepProps {
   onSubmit: (phone: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
+  /** اسم البوت — يُملأ عند خطأ not_linked ليُعرض زر فتح البوت */
+  botUsername?: string | null;
 }
 
-export function PhoneStep({ onSubmit, isLoading, error }: PhoneStepProps) {
+export function PhoneStep({ onSubmit, isLoading, error, botUsername }: PhoneStepProps) {
   const t = useTranslations('auth');
   const tErrors = useTranslations('errors');
   const [value, setValue] = useState('');
@@ -62,7 +64,7 @@ export function PhoneStep({ onSubmit, isLoading, error }: PhoneStepProps) {
             error ? 'border-destructive' : 'border-border',
           ].join(' ')}
         />
-        {error && (
+        {error && error !== 'not_linked' && (
           <p className="text-sm text-destructive" role="alert">
             {tErrors(error as Parameters<typeof tErrors>[0]) ?? error}
           </p>
@@ -71,6 +73,23 @@ export function PhoneStep({ onSubmit, isLoading, error }: PhoneStepProps) {
           {t('phoneHint')}
         </p>
       </div>
+
+      {/* بطاقة الربط مع Telegram عند الحاجة */}
+      {botUsername && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex flex-col gap-3">
+          <h3 className="font-semibold text-sm">{t('linkTelegramTitle')}</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">{t('linkTelegramDesc')}</p>
+          <a
+            href={`https://t.me/${botUsername}?start=link`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-xl bg-primary text-primary-foreground text-sm font-semibold px-4"
+          >
+            {t('openBot')}
+          </a>
+          <p className="text-xs text-muted-foreground text-center">{t('afterLink')}</p>
+        </div>
+      )}
 
       <button
         type="submit"
