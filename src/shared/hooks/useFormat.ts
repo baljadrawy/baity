@@ -41,15 +41,32 @@ export function useFormat() {
     /** تنسيق مبلغ مالي بالريال السعودي */
     currency: (value: number) => formatCurrency(value, locale),
 
-    /** تنسيق تاريخ ميلادي */
-    date: (date: Date, options?: Intl.DateTimeFormatOptions) =>
-      formatDate(date, locale, options),
+    /** تنسيق تاريخ ميلادي — متسامح مع null/string/تاريخ غير صحيح */
+    date: (
+      date: Date | string | null | undefined,
+      options?: Intl.DateTimeFormatOptions
+    ) => {
+      if (!date) return '';
+      const d = date instanceof Date ? date : new Date(date);
+      if (Number.isNaN(d.getTime())) return '';
+      return formatDate(d, locale, options);
+    },
 
-    /** تنسيق تاريخ ميلادي قصير */
-    shortDate: (date: Date) => formatShortDate(date, locale),
+    /** تنسيق تاريخ ميلادي قصير — متسامح */
+    shortDate: (date: Date | string | null | undefined) => {
+      if (!date) return '';
+      const d = date instanceof Date ? date : new Date(date);
+      if (Number.isNaN(d.getTime())) return '';
+      return formatShortDate(d, locale);
+    },
 
-    /** تنسيق تاريخ هجري */
-    hijri: (date: Date) => formatHijriDate(date, locale),
+    /** تنسيق تاريخ هجري — متسامح */
+    hijri: (date: Date | string | null | undefined) => {
+      if (!date) return '';
+      const d = date instanceof Date ? date : new Date(date);
+      if (Number.isNaN(d.getTime())) return '';
+      return formatHijriDate(d, locale);
+    },
 
     /** تنسيق رقم الجوال */
     phone: (phone: string) => formatPhoneNumber(phone, locale),

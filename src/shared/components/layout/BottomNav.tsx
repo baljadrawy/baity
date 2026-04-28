@@ -29,7 +29,7 @@ const BOTTOM_NAV_ITEMS: NavItem[] = [
   { key: 'bills', href: '/bills', icon: Receipt },
   { key: 'chores', href: '/chores', icon: ClipboardList },
   { key: 'shopping', href: '/shopping', icon: ShoppingCart },
-  { key: 'wallet', href: '/wallet', icon: Wallet },
+  { key: 'wallet', href: '/house-economy', icon: Wallet },
 ];
 
 export function BottomNav() {

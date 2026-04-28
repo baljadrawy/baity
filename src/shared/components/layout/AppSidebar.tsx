@@ -15,7 +15,6 @@ import {
   ClipboardList,
   ShoppingCart,
   Tv2,
-  Archive,
   Wallet,
   Settings,
   LogOut,
@@ -33,8 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'chores', href: '/chores', icon: ClipboardList },
   { key: 'shopping', href: '/shopping', icon: ShoppingCart },
   { key: 'appliances', href: '/appliances', icon: Tv2 },
-  { key: 'archive', href: '/archive', icon: Archive },
-  { key: 'wallet', href: '/wallet', icon: Wallet },
+  { key: 'wallet', href: '/house-economy', icon: Wallet },
 ];
 
 export function AppSidebar() {

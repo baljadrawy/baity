@@ -381,6 +381,30 @@
     "points": "{points} نقطة",
     "congratulations": "مبروك!"
   },
+  "wallet": {
+    "title": "المحفظة",
+    "balance": "الرصيد الحالي",
+    "earned": "المكتسَب",
+    "saved": "المدّخَر",
+    "charity": "الصدقة",
+    "spent": "المُنفَق",
+    "goal": "هدف الادخار",
+    "goalProgress": "{percent}% من هدفك",
+    "remaining": "{amount} ر.س للوصول للهدف",
+    "goalReached": "وصلت لهدفك! 🎉",
+    "addMoney": "إيداع",
+    "withdraw": "سحب",
+    "history": "سجل المعاملات",
+    "noWallets": "لا توجد محافظ بعد",
+    "noWalletsDesc": "لا يوجد أطفال لديهم محافظ مفعّلة",
+    "savings": "المدخرات",
+    "distribution": {
+      "title": "توزيع الأرباح",
+      "spend": "للصرف",
+      "save": "للادخار",
+      "charity": "للصدقة"
+    }
+  },
   "familyBank": {
     "title": "بنك العائلة",
     "balance": "الرصيد",
