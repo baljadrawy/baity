@@ -1347,3 +1347,57 @@ xsch-app          Up                  host network (3000)
 ```
 
 **المشروع جاهز على:** http://192.168.100.64:3001 — يُعيد لـ `/ar/login` تلقائياً.
+
+### 🚀 الجولة 4: إعدادات الإنتاج (cron + backups + smoke tests)
+
+#### CRON_SECRET + Cron jobs
+- توليد `CRON_SECRET` (32 بايت عشوائي) وإضافته لـ `.env.production`
+- توثيق المتطلب في `.env.local.example`
+- اختبار الـ 4 endpoints — كلها تستجيب 200 بالـ secret الصحيح، 401 بدونه
+- إنشاء `/home/pi/baity-cron.sh` — wrapper موحَّد يقرأ السر من `.env.production` (لا يضعه inline)
+- جدولة في system crontab:
+  ```
+  0 4 * * *  bill-status (يومياً 4 صباحاً)
+  5 4 * * *  chore-rollover
+  10 4 * * * warranty-check
+  0 6 1 * *  family-bank-interest (شهرياً 1 الشهر)
+  ```
+
+#### النسخ الاحتياطي
+- `/home/pi/baity-backup.sh`:
+  - يستخدم `docker exec shared-postgres pg_dump` (لا حاجة لتثبيت pg_dump على المضيف)
+  - gzip -9 → `/home/pi/backups/baity/baity_<timestamp>.sql.gz`
+  - تنظيف تلقائي بعد 30 يوم
+  - تحقق من حجم النسخة (> 1KB) قبل الاحتفاظ بها
+- مجدوَل: يومياً 3 صباحاً
+- اختُبر فعلياً — نسخة 4.8 KB على القاعدة الفارغة الآن
+- **ملاحظة**: لم يُستخدم `age` للتشفير حالياً — البيانات على نفس الـ Pi، إن احتيج تشفير لاحقاً (نقل خارجي) أضيف age أو gpg
+
+#### Smoke Test للنشر النهائي
+| المسار | النتيجة |
+|---|---|
+| `/` | 307 → `/ar` |
+| `/ar` | 307 → `/ar/login` |
+| `/ar/login` | 200 ✓ |
+| `/ar/onboarding` | 200 ✓ |
+| `/ar/dashboard` | 200 ✓ |
+| `/ar/bills` | 200 ✓ |
+| `/ar/chores` | 200 ✓ |
+| `/ar/shopping` | 200 ✓ |
+| `/api/health` | 200 — DB ok |
+| `POST /api/v1/auth/otp` | 200 — `{"message":"تم إرسال رمز التحقق"}` |
+
+### ✅ الحالة: جاهز للاستخدام الداخلي
+المشروع يعمل كاملاً على الـ Pi:
+- المستخدم يستطيع التسجيل بـ OTP عبر Supabase
+- كل الـ API endpoints تستجيب
+- Cron jobs تعمل تلقائياً
+- النسخ الاحتياطية تُنشأ يومياً
+- الصحة (DB + التطبيق) مرصودة عبر `/api/health` و Docker healthcheck
+
+### ⏳ ما تبقى للوصول لـ Production-Public
+- **HTTPS + دومين**: الوصول حالياً عبر `192.168.100.64:3001` (شبكة محلية فقط). يلزم Caddy/Nginx مع شهادة Let's Encrypt + port forwarding للوصول العام
+- **Migrations حقيقية**: الآن نستخدم `prisma db push` (مناسب للتطوير). قبل أول نشر عام، الانتقال لـ `prisma migrate deploy` مع ملفات migration commits
+- **Telegram webhook URL**: فارغ في `.env.production` — يحتاج تعبئة بدومين عام لتفعيل البوت
+- **Monitoring**: Sentry DSN فارغ، لا تتبع أخطاء production. يمكن إضافته لاحقاً
+- **Tests E2E**: تم إصلاح ESLint+TS لكن لم تُشغَّل اختبارات Vitest/Playwright فعلياً
