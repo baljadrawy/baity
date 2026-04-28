@@ -381,6 +381,36 @@
     "points": "{points} نقطة",
     "congratulations": "مبروك!"
   },
+  "houseEconomy": {
+    "title": "اقتصاد البيت",
+    "jobMenu": "منيو الأعمال",
+    "myJobs": "أعمالي",
+    "startJob": "ابدأ العمل",
+    "finishJob": "إنهاء العمل",
+    "pendingApproval": "قيد الموافقة",
+    "approved": "موافَق عليه ✅",
+    "rejected": "مرفوض ❌",
+    "reward": "المكافأة",
+    "totalBalance": "إجمالي الرصيد",
+    "noPending": "لا توجد طلبات موافقة",
+    "difficulty": {
+      "easy": "سهل",
+      "medium": "متوسط",
+      "hard": "صعب"
+    },
+    "ageRange": "من {min} إلى {max} سنة",
+    "uploadPhoto": "ارفع صورة قبل/بعد",
+    "parentView": {
+      "title": "إدارة اقتصاد البيت",
+      "pendingApprovals": "بانتظار موافقتك ({count})",
+      "approve": "موافقة",
+      "reject": "رفض",
+      "addJob": "إضافة عمل",
+      "manageWallets": "إدارة المحافظ",
+      "monthlyReport": "التقرير الشهري",
+      "noteForChild": "ملاحظة للطفل (اختياري)..."
+    }
+  },
   "wallet": {
     "title": "المحفظة",
     "balance": "الرصيد الحالي",
