@@ -5,10 +5,11 @@
 import type { NextRequest} from 'next/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { authenticate } from '@/core/auth/authenticate';
+import { authenticate, buildSessionCookies } from '@/core/auth/authenticate';
 import { handleApiError } from '@/core/db/with-household';
 import { prisma } from '@/core/db';
 import { rateLimits, getClientIp } from '@/core/security/rate-limit';
+import { generateParentTokens } from '@/core/auth/jwt';
 
 const onboardingSchema = z.object({
   householdName: z.string().min(1).max(100),
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     const { householdName, userName } = onboardingSchema.parse(body);
 
     // تحديث اسم المستخدم
-    await prisma.user.update({
+    const user = await prisma.user.update({
       where: { id: session.userId },
       data: { name: userName },
     });
@@ -51,9 +52,31 @@ export async function POST(req: NextRequest) {
           },
         },
       },
+      include: { members: { where: { userId: session.userId } } },
     });
 
-    return NextResponse.json({ success: true, householdId: household.id }, { status: 201 });
+    const member = household.members[0];
+    if (!member) {
+      throw new Error('فشل إنشاء عضوية المستخدم');
+    }
+
+    // إصدار جلسة كاملة (تُستبدل الجلسة المؤقتة من /verify)
+    const tokens = await generateParentTokens({
+      sub: user.id,
+      householdId: household.id,
+      memberId: member.id,
+      role: member.role,
+      name: user.name,
+    });
+    const cookies = buildSessionCookies(tokens.accessToken, tokens.refreshToken);
+
+    const res = NextResponse.json(
+      { success: true, householdId: household.id },
+      { status: 201 }
+    );
+    res.headers.append('Set-Cookie', cookies.session);
+    res.headers.append('Set-Cookie', cookies.refresh);
+    return res;
   } catch (err) {
     return handleApiError(err);
   }

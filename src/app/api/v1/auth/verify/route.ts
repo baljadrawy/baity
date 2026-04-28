@@ -120,11 +120,24 @@ export async function POST(req: NextRequest) {
 
     if (!member) {
       const { signJwt } = await import('@/core/auth/jwt');
+      const { SESSION_COOKIE } = await import('@/core/auth/session');
       const tempToken = await signJwt(
         { sub: user.id, householdId: '', memberId: '', role: 'MEMBER', name: '' },
         5 * 60
       );
-      return NextResponse.json(
+      const isProduction = process.env['NODE_ENV'] === 'production';
+      const tempCookie = [
+        `${SESSION_COOKIE}=${tempToken}`,
+        'HttpOnly',
+        isProduction ? 'Secure;' : '',
+        'SameSite=Lax',
+        'Path=/',
+        `Max-Age=${5 * 60}`,
+      ]
+        .filter(Boolean)
+        .join('; ');
+
+      const res = NextResponse.json(
         {
           needsOnboarding: true,
           userId: user.id,
@@ -132,6 +145,8 @@ export async function POST(req: NextRequest) {
         },
         { status: 200 }
       );
+      res.headers.append('Set-Cookie', tempCookie);
+      return res;
     }
 
     const tokens = await generateParentTokens({
