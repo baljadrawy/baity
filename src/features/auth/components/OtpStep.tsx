@@ -41,8 +41,8 @@ export function OtpStep({ phone, onSubmit, onBack, isLoading, error }: OtpStepPr
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-      <p className="text-sm text-muted-foreground text-center" dir="ltr">
-        {t('otpSentTo')} <span className="font-mono font-medium text-foreground">{maskedPhone}</span>
+      <p className="text-sm text-muted-foreground text-center">
+        {t('otpSentTo', { phone: maskedPhone })}
       </p>
 
       <div className="flex flex-col gap-2">
