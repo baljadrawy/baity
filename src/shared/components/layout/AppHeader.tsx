@@ -10,6 +10,7 @@
 import Link from 'next/link';
 import { Bell, Settings } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
+import { LocaleSwitcher } from '@/shared/components/LocaleSwitcher';
 
 interface AppHeaderProps {
   title?: string;
@@ -52,6 +53,9 @@ export function AppHeader({ title }: AppHeaderProps) {
 
       {/* إجراءات الرأس */}
       <div className="flex items-center gap-1">
+        {/* مفتاح تبديل اللغة */}
+        <LocaleSwitcher />
+
         {/* زر الإشعارات */}
         <button
           className="relative flex items-center justify-center rounded-xl min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"

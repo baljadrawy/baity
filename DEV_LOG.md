@@ -1401,3 +1401,71 @@ xsch-app          Up                  host network (3000)
 - **Telegram webhook URL**: فارغ في `.env.production` — يحتاج تعبئة بدومين عام لتفعيل البوت
 - **Monitoring**: Sentry DSN فارغ، لا تتبع أخطاء production. يمكن إضافته لاحقاً
 - **Tests E2E**: تم إصلاح ESLint+TS لكن لم تُشغَّل اختبارات Vitest/Playwright فعلياً
+
+### 🧪 الجولة 5: Vitest + Playwright + Sentry + Migrations + Design
+
+#### Vitest (62/62 ✓)
+- إضافة `@testing-library/jest-dom` (كانت ناقصة)
+- 3 ملفات اختبار: `format-number.test.ts` (24 tests)، `with-household.test.ts` (9 tests)، `period-engine.test.ts` (29 tests)
+- جميع الاختبارات نظيفة، تغطية ممتازة لمنطق المشروع الأساسي
+
+#### Prisma Migrations (initial baseline)
+- تحويل من `db push` إلى نظام migrations حقيقي
+- منح `CREATEDB` للمستخدم `baity` (مطلوب لـ shadow DB في `migrate dev`)
+- `prisma migrate dev --name initial` → أنشأ `prisma/migrations/20260428134626_initial/migration.sql`
+- جدول `_prisma_migrations` في DB يتتبع التطبيق
+- الـ DB كانت فارغة فأُسقطت ثم أُعيد إنشاؤها بالـ migration → خط أساس نظيف
+
+#### Sentry (مُعدّ للنشر العام)
+- `@sentry/nextjs@^8.50.0` مضاف
+- 3 ملفات config: `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`
+- كلها guarded: لا تفعل شيئاً إذا DSN غير معدّ → آمن للتطوير المحلي
+- `next.config.ts` ملفوف بـ `withSentryConfig` مع `silent: true` و env-based credentials
+- `.env.local.example` يوثّق `SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN`
+
+#### Playwright (5/5 ✓)
+- `@playwright/test@^1.49.1` مضاف، التركيب الفعلي 1.59.1
+- `playwright.config.ts` مع locale `ar-SA` و timezone Riyadh
+- 5 smoke tests في `e2e/smoke.spec.ts`:
+  - `/` redirects to `/ar`
+  - `/api/health` returns DB ok
+  - login page renders
+  - OTP validates Saudi phone format (422 لرقم دولي، 200 لسعودي)
+  - dashboard route protection
+- يُشغَّل عبر `mcr.microsoft.com/playwright:v1.59.1-noble` Docker image
+
+#### LocaleSwitcher + i18n كاملة
+- ✅ ar.json: 396 مفتاح
+- ✅ en.json: 468 مفتاح (يغطي كل ما في ar + بعض الإضافات)
+- مكوّن `LocaleSwitcher.tsx` جديد:
+  - زر مع رمز Globe + اسم اللغة الأخرى
+  - يُحدّث URL ويُجدّد router
+  - `min-h-[44px]` (touch target صحيح)
+- مدمج في `AppHeader` (يظهر في كل الصفحات بعد التسجيل)
+- مدمج في `login/page.tsx` (مهم جداً — أول صفحة يراها المستخدم)
+
+#### Theme Refresh (Saudi Gold v2)
+في `globals.css`:
+- خلفية دافئة (`hsl(36 33% 99%)` بدل `hsl(0 0% 100%)`) — أنسب للجمالية المنزلية
+- ذهبي مُعاد ضبطه: `hsl(38 56% 52%)` بدل `hsl(40 51% 58%)` — أنعم وأقرب لـ #c89e4a
+- وضع داكن دافئ (لون أساس بُنّي خفيف بدل رمادي صرف)
+- تكبير الـ radius من `0.75rem` إلى `0.875rem`
+- زيادة `header-height` (60→64) و `bottom-nav-height` (64→68) — أنسب لإصبع البالغين
+- دعم `prefers-color-scheme: dark` تلقائياً
+
+#### deploy.sh
+- سكربت موحَّد: `git pull` → `prisma migrate deploy` → `compose build` → `up -d --force-recreate` → فحص health
+- مكان: `/home/pi/baity-deploy.sh` (خارج repo، خاص بهذا الـ Pi)
+
+### 📊 الحالة النهائية
+- جميع الفحوص نظيفة: ESLint 0، TypeScript 0، Vitest 62/62، Playwright 5/5
+- صورة الإنتاج: 450 MB (زادت بعد إضافة Sentry — لكن مقبولة)
+- جاهزية ميزة بميزة:
+  - ✅ بناء + نشر
+  - ✅ ترجمات كاملة (ar + en)
+  - ✅ Locale switcher وظيفي
+  - ✅ Theme محدَّث
+  - ✅ migrations حقيقية
+  - ✅ Sentry جاهز (يحتاج DSN فقط)
+  - ✅ tests شغّالة
+  - ✅ cron + backups + healthchecks

@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -70,4 +71,12 @@ const nextConfig: NextConfig = {
   experimental: {},
 };
 
-export default withNextIntl(nextConfig);
+// Sentry يلتفّ على next.config — إذا DSN غير معدّ، البناء يستمر بدون رفع source maps
+export default withSentryConfig(withNextIntl(nextConfig), {
+  // الأخطاء الصامتة في البناء عند غياب التوكن (للتطوير المحلي / CI بدون secret)
+  silent: true,
+  // رفع source maps فقط إذا SENTRY_AUTH_TOKEN موجود (production CI)
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+});
