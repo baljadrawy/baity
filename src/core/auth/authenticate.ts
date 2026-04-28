@@ -75,8 +75,9 @@ export function buildSessionCookies(
   refreshToken: string,
   isChild = false
 ): { session: string; refresh: string } {
-  const isProduction = process.env['NODE_ENV'] === 'production';
-  const secure = isProduction ? 'Secure; ' : '';
+  // Secure cookies تتطلب HTTPS — تُضاف فقط عند ضبط BAITY_HTTPS=true
+  // (للنشر العام خلف Caddy/Nginx). للتطوير/Pi محلياً تبقى مغلقة.
+  const secure = process.env['BAITY_HTTPS'] === 'true' ? 'Secure; ' : '';
   const sessionMaxAge = isChild ? 24 * 60 * 60 : 15 * 60;
   const refreshMaxAge = 30 * 24 * 60 * 60;
 

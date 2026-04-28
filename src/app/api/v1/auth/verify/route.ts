@@ -125,11 +125,12 @@ export async function POST(req: NextRequest) {
         { sub: user.id, householdId: '', memberId: '', role: 'MEMBER', name: '' },
         5 * 60
       );
-      const isProduction = process.env['NODE_ENV'] === 'production';
+      // Secure فقط على HTTPS الفعلي (مرّة BAITY_HTTPS=true في البيئة)
+      const useSecure = process.env['BAITY_HTTPS'] === 'true';
       const tempCookie = [
         `${SESSION_COOKIE}=${tempToken}`,
         'HttpOnly',
-        isProduction ? 'Secure;' : '',
+        useSecure ? 'Secure' : '',
         'SameSite=Lax',
         'Path=/',
         `Max-Age=${5 * 60}`,
