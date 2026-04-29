@@ -129,6 +129,7 @@ export function isChild(role: Role): boolean {
 
 /**
  * يحوّل الـ errors المعروفة لـ Response JSON مناسبة.
+ * الأخطاء غير المتوقّعة (5xx) تُرسَل لـ Sentry للمراجعة.
  */
 export function handleApiError(error: unknown): Response {
   if (error instanceof ForbiddenError) {
@@ -140,7 +141,15 @@ export function handleApiError(error: unknown): Response {
   if (error instanceof NotFoundError) {
     return Response.json({ error: 'not found' }, { status: 404 });
   }
-  // خطأ غير متوقع
+  // خطأ غير متوقع — أرسل لـ Sentry
   console.error('[API Error]', error);
+  // import ديناميكي لتفادي ربط Sentry بالـ Edge runtime عند عدم الحاجة
+  import('@sentry/nextjs')
+    .then(({ captureException }) => {
+      captureException(error);
+    })
+    .catch(() => {
+      /* Sentry غير مُعدّ — تجاهَل */
+    });
   return Response.json({ error: 'internal server error' }, { status: 500 });
 }
