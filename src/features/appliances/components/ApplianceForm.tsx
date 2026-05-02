@@ -96,7 +96,27 @@ export function ApplianceForm({ defaultValues, onSubmit, onCancel, isLoading }: 
         </div>
         <div>
           <label className="text-sm font-medium mb-1.5 block" htmlFor="a-store">{t('store')}</label>
-          <input id="a-store" {...register('store')} className="w-full border border-border rounded-xl px-4 py-3 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[44px]" />
+          <input
+            id="a-store"
+            list="appliance-stores"
+            {...register('store')}
+            className="w-full border border-border rounded-xl px-4 py-3 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[44px]"
+          />
+          <datalist id="appliance-stores">
+            <option value="اكسترا" />
+            <option value="ساكو" />
+            <option value="جرير" />
+            <option value="حسوب" />
+            <option value="نون" />
+            <option value="أمازون" />
+            <option value="ايكيا" />
+            <option value="هوم سنتر" />
+            <option value="بنده" />
+            <option value="كارفور" />
+            <option value="لولو" />
+            <option value="هايبر بنده" />
+            <option value="الشايع" />
+          </datalist>
         </div>
       </section>
 

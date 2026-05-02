@@ -11,12 +11,17 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Plus } from 'lucide-react';
 import { useShoppingLists, useCreateShoppingList, useDeleteShoppingList } from '@/features/shopping/hooks/useShopping';
+import { useShoppingRealtime } from '@/features/shopping/hooks/useShoppingRealtime';
 import { ShoppingListCard } from '@/features/shopping/components/ShoppingListCard';
 import { ShoppingListDetail } from '@/features/shopping/components/ShoppingListDetail';
 import { PageLoader } from '@/shared/components/PageLoader';
 import type { ShoppingListWithMeta } from '@/features/shopping/types';
 
-export function ShoppingPageClient() {
+interface ShoppingPageClientProps {
+  householdId: string;
+}
+
+export function ShoppingPageClient({ householdId }: ShoppingPageClientProps) {
   const t = useTranslations('shopping');
   const tc = useTranslations('common');
 
@@ -30,6 +35,12 @@ export function ShoppingPageClient() {
   const deleteList = useDeleteShoppingList();
 
   const lists = data?.data ?? [];
+
+  // مزامنة realtime بين الأجهزة — مفلترة بـ householdId + listIds
+  useShoppingRealtime({
+    householdId,
+    listIds: lists.map((l) => l.id),
+  });
 
   const handleCreateList = () => {
     if (!newListName.trim()) return;

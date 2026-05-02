@@ -14,10 +14,20 @@ import type { ChildWalletWithDetails } from '../types';
 interface WalletCardProps {
   wallet: ChildWalletWithDetails;
   onManage?: () => void;
+  onAddGoal?: () => void;
+  onEditGoal?: () => void;
+  onDeleteGoal?: () => void;
   compact?: boolean;
 }
 
-export function WalletCard({ wallet, onManage, compact = false }: WalletCardProps) {
+export function WalletCard({
+  wallet,
+  onManage,
+  onAddGoal,
+  onEditGoal,
+  onDeleteGoal,
+  compact = false,
+}: WalletCardProps) {
   const t = useTranslations('wallet');
   const f = useFormat();
 
@@ -71,11 +81,39 @@ export function WalletCard({ wallet, onManage, compact = false }: WalletCardProp
       </div>
 
       {/* هدف الادخار */}
-      {currentGoal && goalProgress !== null && (
+      {currentGoal && goalProgress !== null ? (
         <div className="bg-white/20 rounded-xl p-3 mb-3">
-          <div className="flex justify-between items-center mb-1.5">
-            <p className="text-sm font-medium">{currentGoal.title}</p>
-            <p className="text-xs text-emerald-100" dir="ltr">{f.number(goalProgress)}%</p>
+          <div className="flex justify-between items-center gap-2 mb-1.5">
+            <p className="text-sm font-medium truncate flex-1">{currentGoal.title}</p>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <p
+                className="text-xs text-emerald-100 tabular-nums"
+                dir="ltr"
+                style={{ fontFeatureSettings: '"lnum", "tnum"' }}
+              >
+                {f.number(goalProgress)}%
+              </p>
+              {onEditGoal && (
+                <button
+                  type="button"
+                  onClick={onEditGoal}
+                  className="text-emerald-100 hover:text-white text-xs px-1.5 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  aria-label={t('editGoal')}
+                >
+                  ✎
+                </button>
+              )}
+              {onDeleteGoal && (
+                <button
+                  type="button"
+                  onClick={onDeleteGoal}
+                  className="text-emerald-100 hover:text-white text-xs px-1.5 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  aria-label={t('deleteGoal')}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
           <div className="w-full bg-white/30 rounded-full h-2.5">
             <div
@@ -95,6 +133,16 @@ export function WalletCard({ wallet, onManage, compact = false }: WalletCardProp
                 })}
           </p>
         </div>
+      ) : (
+        onAddGoal && (
+          <button
+            type="button"
+            onClick={onAddGoal}
+            className="w-full min-h-[44px] bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors mb-3"
+          >
+            {t('addGoal')}
+          </button>
+        )
       )}
 
       {/* زر الإدارة */}

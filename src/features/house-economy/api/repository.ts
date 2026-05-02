@@ -357,7 +357,7 @@ export class HouseEconomyRepository {
       where: { memberId },
       select: { id: true },
     });
-    if (!wallet) throw new Error('المحفظة غير موجودة');
+    if (!wallet) throw new Error('wallet_not_found');
 
     return prisma.savingsGoal.create({
       data: {
@@ -367,6 +367,44 @@ export class HouseEconomyRepository {
         imageUrl: data.imageUrl,
       },
     });
+  }
+
+  async updateSavingsGoal(
+    memberId: string,
+    goalId: string,
+    data: Partial<CreateSavingsGoalInput>
+  ) {
+    // verify chain: goal → wallet → member → household
+    const goal = await prisma.savingsGoal.findFirst({
+      where: {
+        id: goalId,
+        wallet: { member: { id: memberId, householdId: this.householdId } },
+      },
+      select: { id: true },
+    });
+    if (!goal) throw new Error('goal_not_found');
+
+    return prisma.savingsGoal.update({
+      where: { id: goalId },
+      data: {
+        ...(data.title !== undefined && { title: data.title }),
+        ...(data.targetAmount !== undefined && { targetAmount: data.targetAmount }),
+        ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl }),
+      },
+    });
+  }
+
+  async deleteSavingsGoal(memberId: string, goalId: string) {
+    const goal = await prisma.savingsGoal.findFirst({
+      where: {
+        id: goalId,
+        wallet: { member: { id: memberId, householdId: this.householdId } },
+      },
+      select: { id: true },
+    });
+    if (!goal) throw new Error('goal_not_found');
+
+    await prisma.savingsGoal.delete({ where: { id: goalId } });
   }
 
   // ============================================================

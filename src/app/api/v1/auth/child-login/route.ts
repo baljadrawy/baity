@@ -51,15 +51,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'member not found' }, { status: 404 });
     }
 
-    // TODO: جلب الـ PIN hash من جدول منفصل (في الـ MVP: PIN مخزّن في HouseholdMember)
-    // مؤقت للتطوير: PIN الافتراضي = "1234"
-    const storedHash = (member as unknown as { pinHash?: string }).pinHash;
-    const isValid =
-      process.env['NODE_ENV'] === 'development'
-        ? pin === '1234'
-        : storedHash
-          ? await verifyPin(pin, storedHash)
-          : false;
+    // PIN مخزَّن مُشفَّراً (bcrypt rounds=12) على HouseholdMember.pinHash
+    // يُعيِّنه ولي الأمر عبر POST /api/v1/members/[id]/pin
+    const storedHash = member.pinHash;
+    if (!storedHash) {
+      return NextResponse.json({ error: 'pin_not_set' }, { status: 400 });
+    }
+    const isValid = await verifyPin(pin, storedHash);
 
     if (!isValid) {
       const attempt = recordFailedAttempt(memberId);

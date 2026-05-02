@@ -35,13 +35,36 @@ async function getKey(): Promise<CryptoKey> {
   );
 }
 
-function base64UrlEncode(data: string): string {
-  return btoa(data).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+/**
+ * يحوّل bytes إلى base64url (مناسب للتوقيع الخام أو UTF-8 strings).
+ * `btoa` المباشر يفشل على الأحرف خارج Latin1 (مثل الأرقام العربية) — لذا نمر دائماً عبر bytes.
+ */
+function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
-function base64UrlDecode(data: string): string {
+function base64UrlToBytes(data: string): Uint8Array {
   const padded = data + '='.repeat((4 - (data.length % 4)) % 4);
-  return atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+  const binary = atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+/** UTF-8 string → base64url (آمن مع العربية) */
+function base64UrlEncode(text: string): string {
+  return bytesToBase64Url(new TextEncoder().encode(text));
+}
+
+/** base64url → UTF-8 string */
+function base64UrlDecode(data: string): string {
+  return new TextDecoder().decode(base64UrlToBytes(data));
 }
 
 /**
@@ -65,9 +88,7 @@ export async function signJwt(
     encoder.encode(`${header}.${body}`)
   );
 
-  const sigB64 = base64UrlEncode(
-    String.fromCharCode(...new Uint8Array(signature))
-  );
+  const sigB64 = bytesToBase64Url(new Uint8Array(signature));
   return `${header}.${body}.${sigB64}`;
 }
 
@@ -83,10 +104,15 @@ export async function verifyJwt(token: string): Promise<Session> {
   const key = await getKey();
   const encoder = new TextEncoder();
 
+  const sigBytes = base64UrlToBytes(signature);
+  const sigBuffer = sigBytes.buffer.slice(
+    sigBytes.byteOffset,
+    sigBytes.byteOffset + sigBytes.byteLength
+  ) as ArrayBuffer;
   const valid = await crypto.subtle.verify(
     ALGORITHM,
     key,
-    Uint8Array.from(base64UrlDecode(signature), (c) => c.charCodeAt(0)),
+    sigBuffer,
     encoder.encode(`${header}.${body}`)
   );
 

@@ -13,6 +13,8 @@ import { cn } from '@/shared/lib/utils';
 import { useAppliances, useCreateAppliance, useUpdateAppliance, useDeleteAppliance } from '@/features/appliances/hooks/useAppliances';
 import { ApplianceCard } from '@/features/appliances/components/ApplianceCard';
 import { ApplianceForm } from '@/features/appliances/components/ApplianceForm';
+import { ApplianceDocumentsSection } from '@/features/appliances/components/ApplianceDocumentsSection';
+import { ApplianceMaintenanceSection } from '@/features/appliances/components/ApplianceMaintenanceSection';
 import type { ApplianceWithMeta } from '@/features/appliances/api/repository';
 import type { CreateApplianceInput } from '@/features/appliances/schemas';
 
@@ -192,6 +194,8 @@ export function AppliancesPageClient() {
                 onCancel={() => { setShowForm(false); setEditing(null); }}
                 isLoading={createMutation.isPending || updateMutation.isPending}
               />
+              {editing && <ApplianceMaintenanceSection appliance={editing} />}
+              {editing && <ApplianceDocumentsSection applianceId={editing.id} />}
             </div>
           </div>
         </div>

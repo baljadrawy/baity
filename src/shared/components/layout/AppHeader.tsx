@@ -14,15 +14,24 @@ import { LocaleSwitcher } from '@/shared/components/LocaleSwitcher';
 
 interface AppHeaderProps {
   title?: string;
+  /** عدد الإشعارات غير المقروءة (اختياري) */
+  notificationsCount?: number;
 }
 
-export function AppHeader({ title }: AppHeaderProps) {
+export function AppHeader({ title, notificationsCount = 0 }: AppHeaderProps) {
   const t = useTranslations('navigation');
+  const tDash = useTranslations('dashboard.header');
   const locale = useLocale();
+
+  const hasNotifications = notificationsCount > 0;
+  const badgeLabel =
+    notificationsCount > 9
+      ? '9+'
+      : new Intl.NumberFormat('ar-SA-u-nu-latn').format(notificationsCount);
 
   return (
     <header
-      className="sticky top-0 z-30 flex items-center bg-card border-b border-border px-4 lg:px-6"
+      className="sticky top-0 z-30 flex items-center bg-card/80 backdrop-blur border-b border-border px-4 lg:px-6"
       style={{ height: 'var(--header-height)' }}
     >
       {/* اللوغو — يظهر فقط على الجوال/التابلت */}
@@ -56,18 +65,32 @@ export function AppHeader({ title }: AppHeaderProps) {
         {/* مفتاح تبديل اللغة */}
         <LocaleSwitcher />
 
-        {/* زر الإشعارات */}
+        {/* زر الإشعارات + badge */}
         <button
-          className="relative flex items-center justify-center rounded-xl min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          aria-label={t('notifications')}
+          type="button"
+          className="relative flex items-center justify-center rounded-xl min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground hover:bg-accent transition-smooth"
+          aria-label={
+            hasNotifications
+              ? tDash('notificationsCount', { count: notificationsCount })
+              : t('notifications')
+          }
         >
           <Bell size={20} aria-hidden="true" />
+          {hasNotifications && (
+            <span
+              className="absolute top-2 end-2 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground tabular-nums"
+              dir="ltr"
+              aria-hidden="true"
+            >
+              {badgeLabel}
+            </span>
+          )}
         </button>
 
         {/* رابط الإعدادات — للجوال (الديسكتوب يستخدم الـ Sidebar) */}
         <Link
           href={`/${locale}/settings`}
-          className="flex items-center justify-center rounded-xl min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors lg:hidden"
+          className="flex items-center justify-center rounded-xl min-h-[44px] min-w-[44px] text-muted-foreground hover:text-foreground hover:bg-accent transition-smooth lg:hidden"
           aria-label={t('settings')}
         >
           <Settings size={20} aria-hidden="true" />

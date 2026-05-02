@@ -47,6 +47,8 @@
     "settings": "Settings",
     "profile": "Profile",
     "household": "Household",
+    "familyBank": "Family Bank",
+    "help": "User Guide",
     "appName": "Baity",
     "sidebar": "Sidebar",
     "mainNav": "Main navigation",
@@ -57,19 +59,97 @@
   },
   "dashboard": {
     "greeting": "Hello, {name}",
+    "greetingMorning": "Good morning, {name}",
+    "greetingEvening": "Good evening, {name}",
+    "greetingFallback": "Welcome back",
     "summary": "Today's Summary",
+    "todayLabel": "Today",
     "upcomingBills": "Upcoming Bills",
     "pendingChores": "Pending Chores",
     "recentActivity": "Recent Activity",
+    "noActivity": "No recent activity",
     "quickActions": "Quick Actions",
     "statsSection": "Today's Summary",
     "thisMonth": "this month",
+    "lastMonth": "last month",
     "overdue": "Overdue",
     "inLists": "in lists",
     "riyals": "SAR",
     "shoppingItems": "items",
     "childBalance": "Children's Wallets",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "kpi": {
+      "wallet": "Total Wallet",
+      "walletSub": "Household balance",
+      "tasks": "Tasks",
+      "tasksSub": "Active",
+      "bills": "Bills",
+      "billsSub": "This week",
+      "shopping": "Shopping",
+      "shoppingSub": "Items left"
+    },
+    "trend": {
+      "up": "Up",
+      "down": "Down",
+      "flat": "Stable",
+      "vsLastMonth": "vs last month"
+    },
+    "insights": {
+      "title": "Smart Insights",
+      "subtitle": "Weekly AI-powered analysis",
+      "monthlyFlow": "Monthly expenses",
+      "monthlyFlowDesc": "Total bill payments for the last 6 months",
+      "monthlyExpenses": "Monthly expenses",
+      "totalExpenses6m": "Total expenses (6 months)",
+      "topCategoriesTitle": "Top spending categories (90 days)",
+      "expenses": "Expenses",
+      "expensesUp": "Expenses up {percent}% from last month",
+      "expensesDown": "Expenses down {percent}% from last month — great!",
+      "expensesFlat": "Expenses are roughly flat vs last month",
+      "savingTip": "At this pace you'll save {amount} SAR by month-end",
+      "billsAlert": "{count} bills due soon, totaling {amount} SAR",
+      "topCategory": "Top spending category: {category}"
+    },
+    "ai": {
+      "title": "Smart Assistant",
+      "badge": "Today's Brief",
+      "loading": "Analyzing your home…",
+      "viewMore": "More details"
+    },
+    "alerts": {
+      "title": "Alerts",
+      "subtitle": "What needs your attention",
+      "empty": "No alerts right now",
+      "emptyDesc": "Everything's under control 👌",
+      "billOverdue": "Bill {title} is overdue",
+      "billDueSoon": "{title} due in {days} days",
+      "billDueToday": "{title} due today",
+      "choreOverdue": "Chore {title} is overdue",
+      "warrantyExpiring": "{title} warranty expires in {days} days"
+    },
+    "activity": {
+      "title": "Recent Activity",
+      "subtitle": "Latest actions in your home",
+      "billPaid": "Paid {title}",
+      "choreDone": "{member} completed {title}",
+      "shoppingAdded": "{title} added to list",
+      "memberJoined": "{name} joined the home",
+      "rewardEarned": "{member} earned {amount} SAR"
+    },
+    "quick": {
+      "addBill": "Add bill",
+      "addChore": "Add task",
+      "addShopping": "Shopping list",
+      "addAppliance": "Register appliance"
+    },
+    "header": {
+      "notifications": "Notifications",
+      "notificationsCount": "{count} new notifications",
+      "search": "Quick search"
+    },
+    "skeleton": {
+      "loading": "Loading"
+    }
   },
   "bills": {
     "title": "Bills",
@@ -315,6 +395,14 @@
     "documents": "Documents",
     "maintenanceHistory": "Maintenance History",
     "expiringSoon": "Warranties expiring soon",
+    "noMaintenance": "No maintenance schedules",
+    "logMaintenance": "Mark as done",
+    "intervalDays": "Every X days",
+    "deleteScheduleConfirm": "Delete schedule \"{name}\"?",
+    "errors": {
+      "invalidInterval": "Enter a valid number of days",
+      "addScheduleFailed": "Failed to add schedule"
+    },
     "searchPlaceholder": "Search for an appliance...",
     "filterCategory": "Filter by category",
     "allCategories": "All categories",
@@ -330,6 +418,101 @@
     "empty": "No appliances registered",
     "emptyHint": "Register your home appliances to track warranties and maintenance"
   },
+  "members": {
+    "title": "Household Members",
+    "subtitle": "Manage parents and children in your home",
+    "add": "Add member",
+    "addTitle": "Add a new member",
+    "addDesc": "They'll be linked automatically when they sign in with the same phone",
+    "addConfirm": "Add member",
+    "deleteConfirm": "Delete member \"{name}\"? This cannot be undone.",
+    "deleteAria": "Delete {name}",
+    "setPinTitle": "Set PIN for {name}",
+    "setPinDesc": "4-digit PIN for quick child login",
+    "setPinAria": "Set PIN for {name}",
+    "changePinAria": "Change PIN for {name}",
+    "savePin": "Save PIN",
+    "pinSet": "PIN enabled",
+    "loadError": "Failed to load members",
+    "empty": "No members yet",
+    "emptyHint": "Add parents/children to share household management",
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "e.g. Sarah",
+      "phone": "Phone number",
+      "phoneHint": "Saudi number starting with 05 — used for sign-in",
+      "role": "Role",
+      "age": "Age",
+      "pin": "PIN (4 digits)",
+      "pinHint": "Forgot? Parents can reset PIN any time"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Parent",
+      "member": "Adult member",
+      "child": "Child",
+      "adminHint": "Full access except deleting the household",
+      "memberHint": "Can complete chores and view data",
+      "childHint": "Child account with short PIN + auto-wallet"
+    },
+    "errors": {
+      "invalidPhone": "Invalid phone — must start with 05",
+      "invalidPin": "PIN must be 4 digits",
+      "ageRequired": "Age is required for children",
+      "invalidChildAge": "Child age must be between 4 and 17",
+      "alreadyExists": "This phone is already a member of this household",
+      "validation": "Invalid input",
+      "createFailed": "Failed to add member, try again",
+      "pinFailed": "Failed to save PIN, try again"
+    }
+  },
+  "archive": {
+    "title": "Archive",
+    "subtitle": "Household documents: contracts, invoices, insurance, medical, and more",
+    "add": "Upload",
+    "uploadTitle": "Upload a new document",
+    "uploadDesc": "Save your document with expiry date and reminders",
+    "uploadAction": "Save to archive",
+    "deleteConfirm": "Delete \"{name}\" from archive?",
+    "searchPlaceholder": "Search title/description/tags...",
+    "expiringSoon": "Expiring soon",
+    "expiresIn": "Expires in {days} days",
+    "expired": "Expired",
+    "allCategories": "All categories",
+    "empty": "No documents in archive",
+    "emptyHint": "Start by uploading a contract, invoice, or medical document",
+    "categories": {
+      "invoice": "Invoices",
+      "contract": "Contracts",
+      "insurance": "Insurance",
+      "government": "Government",
+      "medical": "Medical",
+      "education": "Education",
+      "property": "Property",
+      "vehicle": "Vehicle",
+      "other": "Other"
+    },
+    "form": {
+      "file": "File",
+      "filePlaceholder": "Choose an image or PDF",
+      "category": "Category",
+      "title": "Document title",
+      "titlePlaceholder": "e.g. Lease 2026",
+      "description": "Optional description",
+      "descriptionPlaceholder": "Any notes to help you find this later",
+      "expiryDate": "Expiry date (optional)",
+      "tags": "Tags",
+      "tagsPlaceholder": "Comma-separated: lease, apartment, rent",
+      "tagsHint": "Help with fast search — up to 10 tags"
+    },
+    "errors": {
+      "fileRequired": "Choose a file to upload",
+      "uploadFailed": "Upload failed, try again",
+      "fileTooLarge": "File exceeds size limit",
+      "unsupportedMime": "Unsupported file type (allowed: JPEG/PNG/WebP or PDF)",
+      "invalidFile": "File is corrupted or suspicious"
+    }
+  },
   "warranty": {
     "title": "Warranties & Archive",
     "validUntil": "Valid until {date}",
@@ -340,6 +523,13 @@
     "documents": "Documents ({count})",
     "uploadDocument": "Upload Document",
     "searchInDocuments": "Search in Documents",
+    "deleteConfirm": "Delete \"{name}\"?",
+    "errors": {
+      "uploadFailed": "Upload failed, try again",
+      "fileTooLarge": "File exceeds size limit",
+      "unsupportedMime": "Unsupported file type (allowed: JPEG/PNG/WebP images or PDF)",
+      "invalidFile": "File is corrupted or suspicious"
+    },
     "documentTypes": {
       "purchase_invoice": "Purchase Invoice",
       "warranty_card": "Warranty Card",
@@ -349,7 +539,7 @@
       "product_photo": "Product Photo",
       "other": "Other"
     },
-    "empty": "No warranties registered",
+    "empty": "No documents uploaded",
     "emptyHint": "Register your appliances to track warranties automatically"
   },
   "hijri": {
@@ -368,6 +558,24 @@
       "10": "Shawwal",
       "11": "Dhu al-Qi'dah",
       "12": "Dhu al-Hijjah"
+    },
+    "events": {
+      "today": "Today",
+      "ongoing": "Ongoing",
+      "inDays": "In {days} days",
+      "newHijriYear": "Hijri New Year",
+      "ashura": "Ashura",
+      "mawlid": "Prophet's Birthday",
+      "isra": "Al-Isra' wal-Mi'raj",
+      "midShaban": "Mid-Sha'ban Night",
+      "ramadanStart": "Start of Ramadan",
+      "laylatAlQadr": "Laylat al-Qadr (approx.)",
+      "eidFitr": "Eid al-Fitr",
+      "arafah": "Day of Arafah",
+      "eidAdha": "Eid al-Adha",
+      "foundingDay": "Founding Day",
+      "flagDay": "Flag Day",
+      "nationalDay": "Saudi National Day"
     }
   },
   "achievements": {
@@ -385,17 +593,27 @@
     "title": "Family Bank",
     "balance": "Balance",
     "savings": "Savings",
+    "saved": "Saved",
     "charity": "Charity",
     "interest": "Monthly Interest",
-    "interestRate": "Interest rate: {rate}%",
+    "interestRate": "Monthly interest rate: {rate}%",
     "deposit": "Deposit",
     "withdraw": "Withdraw",
     "transfer": "Transfer",
     "history": "Transaction History",
-    "empty": "No transactions",
-    "monthlyInterest": "Monthly interest {amount} SAR",
+    "historyDesc": "Recent transactions across children wallets",
+    "empty": "No transactions yet",
+    "monthlyInterest": "This month's interest",
     "totalSaved": "Total Savings",
-    "totalCharity": "Total Charity"
+    "totalCharity": "Total Charity",
+    "totalEarned": "Total earned: {amount}",
+    "thisMonth": "This month",
+    "estimatedNextInterest": "Estimated next month: {amount}",
+    "walletsCount": "{count} wallets",
+    "membersBreakdown": "Members breakdown",
+    "membersBreakdownDesc": "Each child's share of household balance",
+    "noMembers": "No children wallets",
+    "noMembersDesc": "Add a child from member settings to activate Family Bank"
   },
   "wallet": {
     "title": "Wallet",
@@ -414,6 +632,19 @@
     "noWallets": "No wallets yet",
     "noWalletsDesc": "No children have wallets enabled",
     "savings": "Savings",
+    "addGoal": "Add savings goal",
+    "addGoalDesc": "Set a goal and track progress",
+    "editGoal": "Edit goal",
+    "deleteGoal": "Delete goal",
+    "deleteGoalConfirm": "Delete the goal \"{name}\"?",
+    "goalTitle": "Goal title",
+    "goalTitlePlaceholder": "e.g. New toy",
+    "goalTarget": "Target amount (SAR)",
+    "goalTargetHint": "How much does the child need?",
+    "errors": {
+      "invalidTarget": "Enter a valid amount",
+      "saveFailed": "Failed to save, try again"
+    },
     "distribution": {
       "title": "Earnings Distribution",
       "spend": "To Spend",
@@ -425,6 +656,8 @@
     "title": "House Economy",
     "jobMenu": "Job Menu",
     "myJobs": "My Jobs",
+    "childGreeting": "{name}, pick a job you'd like to do",
+    "estimatedShort": "{minutes}m",
     "startJob": "Start Job",
     "finishJob": "Finish Job",
     "pendingApproval": "Pending Approval",
@@ -433,10 +666,28 @@
     "reward": "Reward",
     "totalBalance": "Total balance",
     "noPending": "No pending approvals",
+    "noJobsAvailable": "No jobs available yet",
     "difficulty": {
       "easy": "Easy",
       "medium": "Medium",
       "hard": "Hard"
+    },
+    "form": {
+      "icon": "Icon",
+      "iconCustom": "Custom icon (emoji)",
+      "title": "Job title",
+      "titlePlaceholder": "e.g.: Tidy your room",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional details...",
+      "reward": "Reward (SAR)",
+      "difficulty": "Difficulty level",
+      "estimatedMinutes": "Estimated time (minutes)",
+      "weeklyLimit": "Weekly limit (optional)",
+      "weeklyLimitPlaceholder": "e.g.: 3 times",
+      "category": "Category",
+      "categoryPlaceholder": "e.g.: Cleaning",
+      "minAge": "Minimum age",
+      "maxAge": "Maximum age"
     },
     "ageRange": "Ages {min}-{max}",
     "uploadPhoto": "Upload before/after photo",
@@ -471,11 +722,26 @@
     "telegram": "Telegram Bot",
     "telegramHint": "Connect your account to receive bill and chore alerts",
     "telegramLink": "Link account",
+    "appearance": "Appearance",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
     "about": "About",
     "version": "Version",
     "privacy": "Privacy Policy",
     "logout": "Logout",
     "logoutConfirm": "Are you sure you want to log out?",
+    "push": {
+      "subscribe": "Enable browser notifications",
+      "subscribeDesc": "Get alerts even when the site is closed",
+      "enabled": "Notifications enabled",
+      "subscribedDesc": "Tap to disable",
+      "denied": "Notifications denied",
+      "deniedDesc": "Enable from browser settings first",
+      "unconfigured": "Notifications unavailable",
+      "unconfiguredDesc": "Owner hasn't configured this yet",
+      "loading": "Loading..."
+    },
     "roles": {
       "parent": "Parent",
       "child": "Child",
@@ -561,5 +827,171 @@
     "jobApproved": "Great job! '{jobName}' approved (+{reward} SAR)",
     "jobRejected": "'{jobName}' was rejected — check the comments",
     "warrantyExpiring": "Warranty for '{applianceName}' expires in {days} days"
+  },
+  "help": {
+    "title": "User Guide",
+    "subtitle": "Everything you need to make the most of Baity",
+    "toc": "Contents",
+    "howItWorks": "How to use it",
+    "tip": "💡 Tip",
+    "contact": "Need more help?",
+    "contactCta": "Contact via Settings",
+    "tooltips": {
+      "phoneFormat": "Saudi phone starting with 05 — used later for sign-in",
+      "memberRole": "OWNER (one only) · ADMIN (parent) · MEMBER (adult) · CHILD (with PIN)",
+      "childAge": "Between 4-17 — used to filter age-appropriate jobs",
+      "childPin": "4 digits — for quick login without OTP. Reset any time from member management",
+      "billRecurring": "Bill auto-generates each cycle (month/quarter/...) once payment is recorded",
+      "choreAssignment": "WHO_LEAST_DID auto-assigns to person with fewest completions (fair) · DYNAMIC_REGULAR reschedules X days after last actual completion",
+      "chorePeriod": "DAILY = every X days from creation · DYNAMIC = X days after last completion — important for chores that get delayed",
+      "applianceWarranty": "Auto-alerts before expiry by configured days (default 30)",
+      "applianceStore": "Pick from list or type any other store name — saved as free text",
+      "archiveCategory": "Helps with quick search later",
+      "archiveExpiry": "For documents that expire (insurance, license) — you'll be notified beforehand",
+      "archiveTags": "Search keywords (comma-separated) — like: lease, rent, apartment",
+      "savingsGoal": "Goal child saves toward — they see motivating progress bar each time they earn",
+      "telegramLink": "One-time link — all family members get notifications on the same bot",
+      "pushNotifications": "Notifications shown even when site is closed — supplements Telegram"
+    },
+    "sections": {
+      "gettingStarted": {
+        "title": "Quick Start",
+        "intro": "First time opening Baity? Here are the essential steps to begin.",
+        "steps": {
+          "0": "Link your account to Telegram from the bot to receive verification codes and notifications.",
+          "1": "Sign in with your phone, then enter the verification code received on Telegram.",
+          "2": "Create your household (name + your name). You become OWNER with full permissions.",
+          "3": "Add family members from Settings → Members before adding any data."
+        },
+        "tip": "Add members first — their names appear in other features (chores, household economy, etc.)."
+      },
+      "members": {
+        "title": "Household Members",
+        "intro": "Manage parents and children — each with their own role and permissions.",
+        "steps": {
+          "0": "Go to Settings → Members → click 'Add member'.",
+          "1": "Fill in name + phone + select role (parent, member, child).",
+          "2": "For children (4-17): enter age + 4-digit PIN. Wallet auto-created."
+        },
+        "tip": "Child PIN can be changed anytime via 🔑 button next to their name. Children can't register themselves — owner adds them."
+      },
+      "bills": {
+        "title": "Bills",
+        "intro": "Track monthly and recurring bills — with reminders before due dates.",
+        "steps": {
+          "0": "Go to Bills → click '+ Add bill'.",
+          "1": "Enter title + category + amount + due date.",
+          "2": "Enable 'Recurring bill' to auto-generate next bill on payment.",
+          "3": "When paid, click 'Record payment' to update status and generate next bill."
+        },
+        "tip": "Pick provider from list (STC, SEC, etc.) — app uses official logo automatically."
+      },
+      "chores": {
+        "title": "Recurring Chores",
+        "intro": "Organize household chores fairly — with 6 period types and 4 smart assignment strategies.",
+        "steps": {
+          "0": "Go to Chores → click 'Add chore'.",
+          "1": "Pick period type: daily/weekly/monthly/yearly/manual/dynamic.",
+          "2": "Pick assignment: least-did-it (fair), random, alphabetic, or fixed.",
+          "3": "Set point reward (for kids) — auto-added to executor's wallet.",
+          "4": "Click 'Done' on completion — next due date auto-calculated."
+        },
+        "tip": "Use 'dynamic' for chores not tied to a fixed date (like washing the car every 10 days from last wash)."
+      },
+      "shopping": {
+        "title": "Shopping Lists",
+        "intro": "Lists shared between family members — with realtime sync across devices.",
+        "steps": {
+          "0": "Go to Shopping → create a new list (like 'Weekly Groceries').",
+          "1": "Add items with quantity, estimated price, and urgency.",
+          "2": "Mark item as bought — change appears on family devices instantly."
+        },
+        "tip": "Shared lists show to all members in real time — useful when mom's at the supermarket and needs the latest update."
+      },
+      "appliances": {
+        "title": "Appliances & Warranties",
+        "intro": "Register your home appliances with purchase invoices and warranty dates — with auto-alerts.",
+        "steps": {
+          "0": "Go to Appliances → click '+ Add appliance'.",
+          "1": "Enter name, brand, model + store (from Saudi store list).",
+          "2": "Enter warranty start/end + alert days before expiry.",
+          "3": "Upload purchase invoice and warranty card from 'Documents' section inside appliance."
+        },
+        "tip": "Set 'alert days = 30' to be notified one month before warranty ends — enough time to renew."
+      },
+      "archive": {
+        "title": "Archive",
+        "intro": "Save important documents (contracts, insurance, medical, government) — with expiry alerts.",
+        "steps": {
+          "0": "Go to Archive → click '+ Upload document'.",
+          "1": "Pick category + clear title + (optional) expiry date + search tags.",
+          "2": "Upload file (image or PDF up to 20MB)."
+        },
+        "tip": "Search works on title, description, and tags — use smart tags like: 'lease', '2026', 'apartment-riyadh'."
+      },
+      "houseEconomy": {
+        "title": "Household Economy (Children)",
+        "intro": "Teach kids economics with job menu + rewards + personal wallet for each child.",
+        "steps": {
+          "0": "Go to Wallet → 'Job menu' → add a job with set reward.",
+          "1": "Child opens '/child/menu' from their device, picks a job, clicks 'Start'.",
+          "2": "On completion, child clicks 'Finish' and uploads before/after photo (optional).",
+          "3": "You receive notification to review and approve → reward added to wallet.",
+          "4": "Set savings goal for child (toy, bike) so they see progress over time."
+        },
+        "tip": "Easy jobs (5-10 SAR) work better for younger kids. Older kids need higher rewards for harder tasks."
+      },
+      "familyBank": {
+        "title": "Family Bank",
+        "intro": "Shows total kids' savings with monthly educational interest auto-added on day 1 of each month.",
+        "steps": {
+          "0": "Go to Family Bank to see: total balance + each child's savings + transaction log.",
+          "1": "Interest is auto-calculated: monthly percent on savings balance (default 2%).",
+          "2": "Teach kids about interest — the more they save, the more it grows without extra work."
+        },
+        "tip": "Tell your child: if you save 100 SAR, next month it becomes 102 SAR without working! That's the power of early saving."
+      },
+      "pin": {
+        "title": "Child PIN",
+        "intro": "Short numeric PIN for kids — alternative to complex OTP. Parent sets and changes it.",
+        "steps": {
+          "0": "In Settings → Members, click 🔑 next to child's name.",
+          "1": "Enter 4-digit PIN — encrypted with bcrypt before saving.",
+          "2": "5 wrong attempts → auto-lock for 15 minutes (anti-guessing)."
+        },
+        "tip": "Don't use obvious PINs like 1234 or birth year. Pick something the child remembers but hard to guess."
+      },
+      "notifications": {
+        "title": "Notifications",
+        "intro": "Auto Telegram alerts for bills, chores, appliances, and expiring documents.",
+        "steps": {
+          "0": "Link Telegram from Settings (one-time only).",
+          "1": "You'll get: bills before due (7/3/1 days) + overdue chores + expiring warranties + archive documents.",
+          "2": "Optional: enable 'Browser notifications' to complement Telegram."
+        },
+        "tip": "Telegram alerts are enough for most. Browser alerts help heavy users who want instant alerts on the site."
+      },
+      "telegram": {
+        "title": "Linking Telegram",
+        "intro": "Telegram bot for verification codes and all notifications — one-time, free, secure.",
+        "steps": {
+          "0": "Open Baity bot from Settings → Link Telegram.",
+          "1": "Click 'Start' in the bot then share your phone number (button appears automatically).",
+          "2": "Bot replies 'Linked ✓' — all alerts come through it."
+        },
+        "tip": "Bot doesn't store your data — only uses chat_id to send messages. Completely safe."
+      },
+      "privacy": {
+        "title": "Privacy & Security",
+        "intro": "Your data is fully isolated from any other family — verified automatically.",
+        "steps": {
+          "0": "Every API filters by householdId (no way to see another household's data).",
+          "1": "Bills and document images on Supabase Storage with household-scoped path + signed URLs (1 hour).",
+          "2": "Auto EXIF strip on every image (removes GPS and device data).",
+          "3": "Child PINs encrypted with bcrypt rounds=12 — unreadable even from the database."
+        },
+        "tip": "If you suspect any leak, run 'verify-isolation.mjs' which automatically checks isolation across 10 layers."
+      }
+    }
   }
 }

@@ -118,3 +118,74 @@ export function warrantyExpiringTemplate(applianceName: string, days: number): s
 export function maintenanceDueTemplate(applianceName: string, taskName: string): string {
   return `🔧 <b>صيانة مستحقة</b>\n\n<b>${applianceName}</b> يحتاج صيانة: <b>${taskName}</b>`;
 }
+
+/**
+ * وثيقة في الأرشيف تنتهي قريباً
+ */
+export function archiveExpiringTemplate(title: string, days: number): string {
+  const daysText = days === 0 ? 'اليوم' : `خلال ${days} يوم`;
+  return `📄 <b>وثيقة تنتهي ${daysText}</b>\n\n<b>${title}</b>\nراجِع الأرشيف للتحديث`;
+}
+
+/**
+ * رسالة ترحيب لصاحب البيت بعد إنشاء المنزل (onboarding).
+ * شرح موجز للميزات + رابط الدخول + قنوات الدعم.
+ */
+export function welcomeOwnerTemplate(
+  name: string,
+  householdName: string,
+  appUrl: string
+): string {
+  return (
+    `🏠 <b>أهلاً ${name} في بيتي!</b>\n\n` +
+    `بيتك <b>"${householdName}"</b> جاهز للاستخدام.\n\n` +
+    `<b>📋 ابدأ بهذه الخطوات:</b>\n` +
+    `1️⃣ أضف زوج/ة وأطفالك من الإعدادات → الأعضاء\n` +
+    `2️⃣ سجّل فواتيرك المتكررة (كهرباء، إنترنت)\n` +
+    `3️⃣ أنشئ قائمة مشتريات أسبوعية\n` +
+    `4️⃣ سجّل أجهزتك مع فاتورة الشراء\n` +
+    `5️⃣ فعّل منيو أعمال الأطفال\n\n` +
+    `<b>🎁 ميزات رئيسية:</b>\n` +
+    `• تنبيهات الفواتير قبل استحقاقها\n` +
+    `• مهام دورية بإسناد عادل (Grocy algorithm)\n` +
+    `• محفظة الطفل + بنك العائلة بفائدة شهرية\n` +
+    `• أرشيف الوثائق المهمة (عقود، تأمين، طبية)\n` +
+    `• مزامنة فورية بين أجهزة العائلة\n\n` +
+    `🔗 <b>الرابط:</b> ${appUrl}\n\n` +
+    `<b>🐛 تبليغ الأخطاء:</b>\n` +
+    `إن واجهت أي مشكلة، أرسل وصفها هنا أو إلى gjafagifts@gmail.com\n\n` +
+    `<b>🔒 الخصوصية:</b>\n` +
+    `بياناتك معزولة تماماً عن أي عائلة أخرى. صور الفواتير محمية بـ signed URLs.\n\n` +
+    `بالتوفيق! 🌟`
+  );
+}
+
+/**
+ * رسالة لعضو دُعي حديثاً (زوج/ة، طفل، ولي أمر إضافي).
+ */
+export function welcomeInvitedTemplate(
+  name: string,
+  householdName: string,
+  role: 'ADMIN' | 'MEMBER' | 'CHILD',
+  appUrl: string
+): string {
+  const roleText =
+    role === 'ADMIN'
+      ? 'ولي أمر'
+      : role === 'CHILD'
+        ? 'طفل'
+        : 'عضو';
+
+  const childExtra =
+    role === 'CHILD'
+      ? `\n\n🔢 <b>للأطفال:</b> اسأل الوالد عن PIN الخاص بك للدخول السريع.`
+      : '';
+
+  return (
+    `🏠 <b>أهلاً ${name}!</b>\n\n` +
+    `تمت إضافتك إلى بيت <b>"${householdName}"</b> كـ <b>${roleText}</b>.\n\n` +
+    `🔗 <b>سجّل دخولك:</b> ${appUrl}\n` +
+    `استخدم نفس رقم جوالك المرتبط بـ Telegram.${childExtra}\n\n` +
+    `أهلاً بك! 🌟`
+  );
+}

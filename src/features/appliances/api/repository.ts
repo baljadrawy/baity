@@ -164,6 +164,37 @@ export class AppliancesRepository {
     ]);
   }
 
+  async deleteMaintenanceSchedule(applianceId: string, scheduleId: string) {
+    // verify chain: schedule → appliance → household
+    const schedule = await prisma.maintenanceSchedule.findFirst({
+      where: {
+        id: scheduleId,
+        applianceId,
+        appliance: { householdId: this.householdId },
+      },
+      select: { id: true },
+    });
+    if (!schedule) throw new Error('schedule_not_found');
+
+    // حذف logs أولاً ثم الجدول
+    await prisma.$transaction([
+      prisma.maintenanceLog.deleteMany({ where: { scheduleId } }),
+      prisma.maintenanceSchedule.delete({ where: { id: scheduleId } }),
+    ]);
+  }
+
+  async verifyScheduleOwnership(applianceId: string, scheduleId: string) {
+    const schedule = await prisma.maintenanceSchedule.findFirst({
+      where: {
+        id: scheduleId,
+        applianceId,
+        appliance: { householdId: this.householdId },
+      },
+      select: { id: true },
+    });
+    if (!schedule) throw new Error('schedule_not_found');
+  }
+
   // ============================================================
   // Warranty expiry alerts (for cron)
   // ============================================================

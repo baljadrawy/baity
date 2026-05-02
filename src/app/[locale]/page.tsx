@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation';
+import { getServerSession } from '@/core/auth/server-session';
 
 /**
- * [locale]/ — يحوّل للـ dashboard
- * مثال: /ar → /ar/dashboard
+ * [locale]/ — يحوّل حسب دور المستخدم:
+ *  - CHILD → /child/menu (واجهة طفولية)
+ *  - الباقي → /dashboard
  */
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -10,5 +12,7 @@ interface PageProps {
 
 export default async function LocalePage({ params }: PageProps) {
   const { locale } = await params;
-  redirect(`/${locale}/dashboard`);
+  const session = await getServerSession();
+  const target = session?.role === 'CHILD' ? 'child/menu' : 'dashboard';
+  redirect(`/${locale}/${target}`);
 }

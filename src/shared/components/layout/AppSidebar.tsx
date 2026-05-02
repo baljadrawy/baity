@@ -16,6 +16,9 @@ import {
   ShoppingCart,
   Tv2,
   Wallet,
+  Landmark,
+  Archive,
+  HelpCircle,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -33,6 +36,8 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'shopping', href: '/shopping', icon: ShoppingCart },
   { key: 'appliances', href: '/appliances', icon: Tv2 },
   { key: 'wallet', href: '/house-economy', icon: Wallet },
+  { key: 'familyBank', href: '/family-bank', icon: Landmark },
+  { key: 'archive', href: '/archive', icon: Archive },
 ];
 
 export function AppSidebar() {
@@ -70,15 +75,20 @@ export function AppSidebar() {
                 <Link
                   href={`/${locale}${href}`}
                   className={[
-                    'flex items-center gap-3 rounded-xl px-3 min-h-[44px]',
-                    'text-sm font-medium transition-colors',
+                    'group relative flex items-center gap-3 rounded-xl px-3 min-h-[44px]',
+                    'text-sm font-medium transition-smooth',
                     active
                       ? 'bg-primary/10 text-primary'
                       : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                   ].join(' ')}
                   aria-current={active ? 'page' : undefined}
                 >
-                  <Icon size={20} aria-hidden="true" />
+                  {active && <span className="nav-active-indicator" aria-hidden="true" />}
+                  <Icon
+                    size={20}
+                    aria-hidden="true"
+                    strokeWidth={active ? 2.25 : 2}
+                  />
                   {t(key as Parameters<typeof t>[0])}
                 </Link>
               </li>
@@ -87,11 +97,18 @@ export function AppSidebar() {
         </ul>
       </nav>
 
-      {/* Footer: Settings + Logout */}
+      {/* Footer: Help + Settings + Logout */}
       <div className="px-3 py-4 border-t border-border flex flex-col gap-1">
         <Link
+          href={`/${locale}/help`}
+          className="flex items-center gap-3 rounded-xl px-3 min-h-[44px] text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-smooth"
+        >
+          <HelpCircle size={20} aria-hidden="true" />
+          {t('help')}
+        </Link>
+        <Link
           href={`/${locale}/settings`}
-          className="flex items-center gap-3 rounded-xl px-3 min-h-[44px] text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          className="flex items-center gap-3 rounded-xl px-3 min-h-[44px] text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-smooth"
         >
           <Settings size={20} aria-hidden="true" />
           {t('settings')}

@@ -15,12 +15,14 @@ import { JobMenuGrid } from '@/features/house-economy/components/JobMenuGrid';
 import { PendingApprovalCard, type PendingInstance } from '@/features/house-economy/components/PendingApprovalCard';
 import { WalletCard } from '@/features/house-economy/components/WalletCard';
 import { JobForm } from '@/features/house-economy/components/JobForm';
+import { SavingsGoalDialog } from '@/features/house-economy/components/SavingsGoalDialog';
 import type { WalletSummary, ChildWalletWithDetails } from '@/features/house-economy/types';
 import {
   usePendingApprovals,
   useWalletSummary,
   useChildWallet,
   useCreateJobMenuItem,
+  useDeleteSavingsGoal,
 } from '@/features/house-economy/hooks/useHouseEconomy';
 import { PageLoader } from '@/shared/components/PageLoader';
 import { useFormat } from '@/shared/hooks/useFormat';
@@ -181,11 +183,66 @@ export function HouseEconomyPageClient() {
   );
 }
 
-/** Wrapper لجلب تفاصيل كل محفظة طفل */
+/** Wrapper لجلب تفاصيل كل محفظة طفل + إدارة dialogs */
 function ChildWalletWrapper({ memberId }: { memberId: string }) {
   const { data, isLoading } = useChildWallet(memberId);
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<SavingsGoalLite | null>(null);
+  const tw = useTranslations('wallet');
+  const deleteGoal = useDeleteSavingsGoal(memberId);
+
   if (isLoading) return <div className="h-52 rounded-3xl bg-muted animate-pulse" />;
   const wallet = (data as { data?: ChildWalletWithDetails } | undefined)?.data;
   if (!wallet) return null;
-  return <WalletCard wallet={wallet} />;
+
+  const currentGoal = wallet.goals.find((g) => !g.achievedAt);
+
+  const handleDelete = async () => {
+    if (!currentGoal) return;
+    const confirmed = window.confirm(tw('deleteGoalConfirm', { name: currentGoal.title }));
+    if (!confirmed) return;
+    try {
+      await deleteGoal.mutateAsync(currentGoal.id);
+    } catch (err) {
+      console.error('delete goal failed', err);
+    }
+  };
+
+  return (
+    <>
+      <WalletCard
+        wallet={wallet}
+        onAddGoal={() => {
+          setEditingGoal(null);
+          setGoalDialogOpen(true);
+        }}
+        onEditGoal={
+          currentGoal
+            ? () => {
+                setEditingGoal({
+                  id: currentGoal.id,
+                  title: currentGoal.title,
+                  targetAmount: currentGoal.targetAmount as unknown as number,
+                });
+                setGoalDialogOpen(true);
+              }
+            : undefined
+        }
+        onDeleteGoal={currentGoal ? handleDelete : undefined}
+      />
+      <SavingsGoalDialog
+        open={goalDialogOpen}
+        onClose={() => setGoalDialogOpen(false)}
+        memberId={memberId}
+        goal={editingGoal}
+      />
+    </>
+  );
+}
+
+/** نسخة مبسّطة للـ goal التي تُمرَّر للـ dialog */
+interface SavingsGoalLite {
+  id: string;
+  title: string;
+  targetAmount: number;
 }

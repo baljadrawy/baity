@@ -10,6 +10,7 @@ import { handleApiError } from '@/core/db/with-household';
 import { prisma } from '@/core/db';
 import { rateLimits, getClientIp } from '@/core/security/rate-limit';
 import { generateParentTokens } from '@/core/auth/jwt';
+import { sendMessage, welcomeOwnerTemplate } from '@/core/notifications/telegram';
 
 const onboardingSchema = z.object({
   householdName: z.string().min(1).max(100),
@@ -41,7 +42,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    // إنشاء household جديد + ربط المستخدم كـ OWNER
+    // إنشاء household جديد + OWNER + Subscription (FREE_TRIAL ٣٠ يوم)
+    const trialEnd = new Date(Date.now() + 30 * 86400000);
     const household = await prisma.household.create({
       data: {
         name: householdName,
@@ -51,6 +53,16 @@ export async function POST(req: NextRequest) {
             role: 'OWNER',
           },
         },
+        subscription: {
+          create: {
+            plan: 'FREE_TRIAL',
+            status: 'IN_TRIAL',
+            currentPeriodEnd: trialEnd,
+            events: {
+              create: { type: 'TRIAL_STARTED' },
+            },
+          },
+        },
       },
       include: { members: { where: { userId: session.userId } } },
     });
@@ -58,6 +70,19 @@ export async function POST(req: NextRequest) {
     const member = household.members[0];
     if (!member) {
       throw new Error('فشل إنشاء عضوية المستخدم');
+    }
+
+    // رسالة ترحيب عبر Telegram — graceful: لا نُفشل onboarding إن فشل الإرسال
+    const userWithChat = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { telegramChatId: true },
+    });
+    if (userWithChat?.telegramChatId) {
+      const appUrl = process.env['NEXT_PUBLIC_APP_URL'] ?? 'http://pi-server:3001';
+      const welcome = welcomeOwnerTemplate(user.name, household.name, appUrl);
+      sendMessage(userWithChat.telegramChatId, welcome).catch((err) => {
+        console.warn('[onboarding] welcome telegram failed:', err);
+      });
     }
 
     // إصدار جلسة كاملة (تُستبدل الجلسة المؤقتة من /verify)

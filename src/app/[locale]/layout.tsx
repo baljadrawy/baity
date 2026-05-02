@@ -69,6 +69,20 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       <head>
         {/* منع iOS من تحويل الأرقام */}
         <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
+        {/* تطبيق الثيم قبل الـ paint لمنع الوميض */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  try {
+    var t = localStorage.getItem('baity-theme') || 'system';
+    var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (dark) document.documentElement.classList.add('dark');
+  } catch (e) {}
+})();
+            `.trim(),
+          }}
+        />
         {/* تسجيل Service Worker للـ PWA */}
         <script
           dangerouslySetInnerHTML={{

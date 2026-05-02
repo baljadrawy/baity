@@ -37,8 +37,9 @@ model User {
   /// Soft delete
   deletedAt   DateTime?
 
-  memberships HouseholdMember[]
-  otpCodes    OtpCode[]
+  memberships       HouseholdMember[]
+  otpCodes          OtpCode[]
+  pushSubscriptions PushSubscription[]
 
   @@index([phone])
   @@map("users")
@@ -77,6 +78,7 @@ model Household {
   appliances    Appliance[]
   archives      DocumentArchive[]
   jobMenuItems  JobMenuItem[]
+  subscription  Subscription?
 
   @@map("households")
 }
@@ -91,6 +93,12 @@ model HouseholdMember {
   /// مهم لمنيو الأعمال — يُحسب من birthDate إذا لم يُدخل
   age         Int?
   points      Int       @default(0)
+  /// PIN مُشفَّر بـ bcrypt — للأطفال فقط (CHILD)
+  pinHash     String?
+  /// عضوية الدعوة — التاريخ الذي أُضيف فيه العضو من قِبَل OWNER/ADMIN
+  invitedAt   DateTime?
+  /// HouseholdMember.id الذي أنشأ هذه العضوية (الداعي)
+  invitedBy   String?
   joinedAt    DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -620,11 +628,100 @@ enum TransactionType {
 }
 
 // ============================================================
-// === SAAS — (مُعطَّل حالياً، يُفعَّل عند قرار SaaS) ===
+// === SAAS — جاهزية البنية للتسعير (لا UI الآن) ===
 // ============================================================
 
-/// مُعطَّل — يُفعَّل بـ migration واحد عند قرار SaaS
-/// model Subscription { ... }
-/// model BillingEvent { ... }
-/// enum SubscriptionPlan { FREE_TRIAL FAMILY_MONTHLY FAMILY_YEARLY FAMILY_LIFETIME }
-/// enum SubscriptionStatus { ACTIVE PAST_DUE CANCELLED EXPIRED IN_TRIAL }
+/// اشتراك المنزل — كل household يبدأ بـ FREE_TRIAL تلقائياً
+/// التنفيذ الفعلي للدفع/الفوترة يُفعَّل لاحقاً عبر provider خارجي
+model Subscription {
+  id              String             @id @default(cuid())
+  household       Household          @relation(fields: [householdId], references: [id])
+  householdId     String             @unique
+  plan            SubscriptionPlan   @default(FREE_TRIAL)
+  status          SubscriptionStatus @default(IN_TRIAL)
+  /// بداية الفترة الحالية
+  currentPeriodStart DateTime         @default(now())
+  /// نهاية الفترة الحالية — انتهاء التجربة أو الاشتراك
+  currentPeriodEnd   DateTime?
+  /// معرّف الاشتراك في provider خارجي (Stripe/Tap/Moyasar) — لاحقاً
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  cancelAtPeriodEnd  Boolean        @default(false)
+  cancelledAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  events BillingEvent[]
+
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@map("subscriptions")
+}
+
+/// أحداث الفوترة — log كامل (للتدقيق + استرجاع المعاملات)
+model BillingEvent {
+  id              String        @id @default(cuid())
+  subscription    Subscription  @relation(fields: [subscriptionId], references: [id])
+  subscriptionId  String
+  type            BillingEventType
+  /// المبلغ (Decimal — قاعدة 6)
+  amount          Decimal?      @db.Decimal(10, 2)
+  currency        String?       @default("SAR")
+  providerEventId String?       // webhook event ID من provider
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+
+  @@index([subscriptionId])
+  @@index([subscriptionId, createdAt])
+  @@map("billing_events")
+}
+
+enum SubscriptionPlan {
+  FREE_TRIAL
+  FAMILY_MONTHLY
+  FAMILY_YEARLY
+  FAMILY_LIFETIME
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+  IN_TRIAL
+}
+
+enum BillingEventType {
+  TRIAL_STARTED
+  SUBSCRIPTION_CREATED
+  PAYMENT_SUCCEEDED
+  PAYMENT_FAILED
+  RENEWED
+  CANCELLED
+  REACTIVATED
+  EXPIRED
+}
+
+// ============================================================
+// === WEB PUSH — اشتراكات المتصفح للتنبيهات ===
+// ============================================================
+
+/// اشتراك Web Push لمستخدم معيّن — جهاز/متصفح واحد = صف واحد
+/// Endpoint من Push Service (FCM/Mozilla/Apple) مع p256dh + auth keys
+model PushSubscription {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  endpoint    String   @unique
+  /// p256dh public key (base64url-encoded)
+  p256dh      String
+  /// auth secret (base64url-encoded)
+  auth        String
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  /// آخر مرة استُخدِم فيها بنجاح — للتنظيف اللاحق
+  lastUsedAt  DateTime?
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}

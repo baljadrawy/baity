@@ -20,9 +20,10 @@ export async function GET(req: NextRequest) {
     const session = await authenticate(req);
     const { searchParams } = new URL(req.url);
 
+    // searchParams.get() ترجع null عند الغياب — Zod's .optional() يقبل undefined فقط
     const filters = applianceFiltersSchema.parse({
-      search: searchParams.get('search'),
-      category: searchParams.get('category'),
+      search: searchParams.get('search') ?? undefined,
+      category: searchParams.get('category') ?? undefined,
       warrantyExpiringSoon: searchParams.get('expiringSoon') === 'true',
       page: searchParams.get('page') ?? 1,
       limit: searchParams.get('limit') ?? 20,

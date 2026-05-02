@@ -189,3 +189,21 @@ export function useCreateSavingsGoal(memberId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: houseEconomyKeys.childWallet(memberId) }),
   });
 }
+
+export function useUpdateSavingsGoal(memberId: string, goalId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<CreateSavingsGoalInput>) =>
+      api.patch(`/house-economy/wallet/${memberId}/goals/${goalId}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: houseEconomyKeys.childWallet(memberId) }),
+  });
+}
+
+export function useDeleteSavingsGoal(memberId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (goalId: string) =>
+      api.delete(`/house-economy/wallet/${memberId}/goals/${goalId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: houseEconomyKeys.childWallet(memberId) }),
+  });
+}

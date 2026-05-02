@@ -71,6 +71,44 @@ export function useAddMaintenanceSchedule(applianceId: string) {
   return useMutation({
     mutationFn: (data: CreateMaintenanceScheduleInput) =>
       api.post(`/appliances/${applianceId}/maintenance`, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: applianceKeys.detail(applianceId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: applianceKeys.detail(applianceId) });
+      qc.invalidateQueries({ queryKey: applianceKeys.lists() });
+    },
+  });
+}
+
+export function useLogMaintenance(applianceId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      scheduleId,
+      cost,
+      notes,
+    }: {
+      scheduleId: string;
+      cost?: number;
+      notes?: string;
+    }) =>
+      api.post(`/appliances/${applianceId}/maintenance/${scheduleId}/log`, {
+        cost,
+        notes,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: applianceKeys.detail(applianceId) });
+      qc.invalidateQueries({ queryKey: applianceKeys.lists() });
+    },
+  });
+}
+
+export function useDeleteMaintenanceSchedule(applianceId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (scheduleId: string) =>
+      api.delete(`/appliances/${applianceId}/maintenance/${scheduleId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: applianceKeys.detail(applianceId) });
+      qc.invalidateQueries({ queryKey: applianceKeys.lists() });
+    },
   });
 }

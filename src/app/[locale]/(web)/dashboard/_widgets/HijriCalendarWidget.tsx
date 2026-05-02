@@ -1,9 +1,10 @@
 /**
- * HijriCalendarWidget — عرض التاريخ الهجري في لوحة التحكم
+ * HijriCalendarWidget — عرض التاريخ الهجري + المناسبات القادمة
  * Server Component — لا يحتاج تفاعل
  */
 
 import { getTranslations, getLocale } from 'next-intl/server';
+import { findUpcomingEvents } from '@/core/i18n/hijri-events';
 
 /**
  * تحويل التاريخ الميلادي إلى هجري
@@ -82,6 +83,49 @@ export async function HijriCalendarWidget() {
 
       {/* التاريخ الميلادي */}
       <p className="text-sm text-muted-foreground">{gregorianFormatted}</p>
+
+      <UpcomingEvents now={now} hijri={hijri} />
     </section>
+  );
+}
+
+async function UpcomingEvents({
+  now,
+  hijri,
+}: {
+  now: Date;
+  hijri: { day: number; month: number; year: number };
+}) {
+  const tEvents = await getTranslations('hijri.events');
+  const upcoming = findUpcomingEvents(now, hijri, 30).slice(0, 2);
+  if (upcoming.length === 0) return null;
+
+  return (
+    <ul className="flex flex-col gap-1.5 mt-2 pt-2 border-t border-border" role="list">
+      {upcoming.map(({ event, daysAway, isOngoing }) => (
+        <li
+          key={event.key}
+          className="flex items-center gap-2 text-xs"
+        >
+          <span aria-hidden="true" className="text-base">
+            {event.emoji}
+          </span>
+          <span className="flex-1 text-foreground font-medium truncate">
+            {tEvents(event.key as 'newHijriYear')}
+          </span>
+          <span
+            className="trend-pill bg-primary/10 text-primary tabular-nums"
+            dir="ltr"
+            style={{ fontFeatureSettings: '"lnum", "tnum"' }}
+          >
+            {isOngoing
+              ? tEvents('ongoing')
+              : daysAway === 0
+                ? tEvents('today')
+                : tEvents('inDays', { days: daysAway })}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
