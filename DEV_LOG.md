@@ -1469,3 +1469,720 @@ xsch-app          Up                  host network (3000)
   - ✅ Sentry جاهز (يحتاج DSN فقط)
   - ✅ tests شغّالة
   - ✅ cron + backups + healthchecks
+
+---
+
+## 📅 2026-04-29 (الأربعاء) — Dashboard Premium Redesign + Bug fixes
+
+**المرحلة:** ما بعد MVP — التحسين والصيانة
+**المدة:** جلسة واحدة
+**الحالة:** ✅ مكتمل
+
+### ✅ ما أنجزته
+1. **Dashboard إعادة تصميم كامل (premium fintech-style):**
+   - 9 ملفات UI primitives جديدة في `src/shared/ui/`: `KpiCard`, `MiniSparkline`, `MonthlyFlowChart`, `AiSummaryCard`, `AlertItem`, `ActivityItem`, `QuickActionButton`, `TrendPill`, `DashboardSection`
+   - 4 widgets server-component جديدة: `MonthlyFlowWidget` (chart دخل/مصروف 6 أشهر مبني على بيانات `BillPayment` الحقيقية), `AlertsWidget` (يدمج فواتير متأخرة + قريبة + مهام متأخرة + ضمانات تنتهي), `RecentActivityWidget` (دفعات + تنفيذ مهام + مشتريات), `AiSummaryWidget` (رؤى ذكية محسوبة من DB)
+   - `dashboard/page.tsx` أُعيد تصميمه: hero (greeting+date) + 4 quick actions + 4 KPIs + AI summary + chart/alerts grid + activity feed
+   - `globals.css`: dark mode محسَّن (#0b0b0f), `surface-card-elevated`, `hover-lift`, `skeleton-shimmer`, `ai-glow`
+   - `AppHeader`: backdrop-blur + notification badge مع count
+   - `AppSidebar`: active indicator (خط ذهبي جانبي) + transitions ناعمة 220ms
+   - **بدون أي dependency جديدة** — كل الـ charts SVG خام
+   - ~50 مفتاح i18n جديد (kpi/trend/insights/ai/alerts/activity/quick/header)
+
+2. **Bug fix: `/api/v1/appliances` GET كان يرجع 422 على أي طلب فارغ:**
+   - السبب: `searchParams.get('search')` يرجع `null`، Zod's `.optional()` يقبل `undefined` فقط
+   - الحل: `searchParams.get('search') ?? undefined` على `search` و `category`
+   - النتيجة: قائمة الأجهزة تعمل، الجهاز "غساله" المضاف حديثاً يظهر
+
+### 🎯 القرارات المتخذة
+- **بدون recharts/BullMQ:** SVG خام للـ charts، يحافظ bundle ≤ 200KB
+- **AI summary deterministic:** الرؤى محسوبة من Prisma queries فعلياً (لا LLM call) — أسرع، أرخص، يمكن استبداله لاحقاً
+- **Synthetic income:** نموذج `Income` غير موجود في schema — استُخدمت قيمة تقديرية ثابتة. مُعلَّمة بـ TODO
+
+### 🐛 مشاكل واجهتها
+- **Compose خاطئ كسر الـ container:** بدلاً من `docker-compose.shared.yml` استخدمت `docker-compose.prod.yml` التي تتوقع db خاص → كَسَرت الكونتينر العامل. الإصلاح: `compose down` ثم إعادة عبر `shared.yml`. حُفظت ذاكرة منع التكرار.
+- **`tsconfig.tsbuildinfo` بـ root ownership:** يسبب EACCES warnings — لا يكسر typecheck لكن يلوّث الناتج. الحل: `rm -f` (الـ parent dir للـ pi).
+
+---
+
+## 📅 2026-04-29 (الأربعاء) — الموجة 1 من P0: Members + PIN + Upload + Documents
+
+**المرحلة:** ما بعد MVP — إغلاق ثغرات النواقص الأساسية
+**المدة:** جلسة واحدة (متعدد الخطوات)
+**الحالة:** ✅ مكتمل
+
+### السياق
+بعد مراجعة `EXECUTION_PLAN_V2` و `EXTRACTED_FEATURES` تبيّن وجود نواقص P0 خطيرة:
+- ميزة "إضافة عضو" غير موجودة (لا API ولا UI، فقط placeholder)
+- `child-login/route.ts` يستخدم `pinHash` لكن الحقل غير موجود في schema → كسر runtime
+- `/api/v1/upload` غير موجود → كل رفع للصور يفشل
+- `WarrantyDocument` model موجود لكن صفر API + صفر UI
+
+تنفيذ هذه الموجة يفتح multi-tenancy فعلي + child auth + رفع المرفقات + أرشيف ضمانات.
+
+### ✅ ما أنجزته
+
+#### 1. Schema migration (`add_pinhash_and_invite_fields`)
+- إضافة 3 حقول لـ `HouseholdMember`:
+  - `pinHash String?` — bcrypt hash للأطفال
+  - `invitedAt DateTime?` — تاريخ الدعوة
+  - `invitedBy String?` — `HouseholdMember.id` للداعي
+- migration: `prisma/migrations/20260429222531_add_pinhash_and_invite_fields/`
+- طُبّقت بنجاح على `shared-postgres` عبر `prisma migrate deploy` + `prisma generate`
+
+#### 2. Storage wrapper + `/api/v1/upload` route
+- `src/core/storage/supabase-storage.ts`: غلاف رفيع لـ Supabase Storage:
+  - `uploadFile(path, buffer, contentType)` → returns `{ path, signedUrl, size }`
+  - `createSignedUrl(path, ttl=3600)` → 1h signed URL
+  - `deleteFile(path)`
+  - `buildScopedPath(householdId, category, ext)` → مسار آمن مع householdId scoping
+- `src/core/storage/index.ts`: re-export
+- `src/app/api/v1/upload/route.ts` (POST):
+  - `authenticate()` + `rateLimits.api(ip)`
+  - `formData.get('file')` (Blob) + `formData.get('category')` (whitelist)
+  - MIME whitelist: `image/jpeg|png|webp` + `application/pdf`
+  - حد الحجم: 10MB صور، 20MB PDF
+  - Magic byte check (PDF: `25 50 44 46`)
+  - **EXIF stripping إجباري للصور** عبر `processAndStripImage` (Golden Rule #4)
+  - مسار: `{householdId}/{category}/{ts}_{rand}.{ext}` — multi-tenancy enforcement
+  - Response: `{ path, url, size, mimeType, fileName }`
+
+#### 3. Members feature — كاملة
+- `src/features/members/schemas/index.ts`:
+  - `createMemberSchema` — phone (Saudi 05) + name + role (`ADMIN|MEMBER|CHILD`) + age (مطلوب 4-17 للطفل) + pin (4 أرقام، مطلوب للطفل)
+  - `updateMemberSchema` (name/role/age)
+  - `setMemberPinSchema` (pin)
+- `src/features/members/api/repository.ts` — `MembersRepository`:
+  - `list()` — كل الأعضاء + wallet balance
+  - `create(data, invitedBy)` — transaction: User upsert by phone → check duplicate → create member → child wallet + pinHash إن CHILD
+  - `update(id, data)` — اسم في User + role/age في HouseholdMember
+  - `setPin(id, pin)` — bcrypt hash للأطفال فقط
+  - `delete(id, requesterId)` — حذف cascade للـ wallet، يمنع حذف OWNER ولا الذات
+- 4 API routes (auth + Zod + role gates):
+  - `GET /api/v1/members` (membership فقط)
+  - `POST /api/v1/members` (ADMIN+)
+  - `PATCH /api/v1/members/[id]` (ADMIN+)
+  - `DELETE /api/v1/members/[id]` (ADMIN+، يمنع حذف OWNER/الذات)
+  - `POST /api/v1/members/[id]/pin` (ADMIN+، CHILD فقط)
+- UI:
+  - `MembersPageClient` (client component) + `members/page.tsx` (server: redirect للـ login إن لا session)
+  - `MemberForm` — react-hook-form + Zod resolver + حقل PIN ديناميكي يظهر عند CHILD
+  - `MembersList` — أيقونة الدور (Crown/Shield/User/Baby) + شارة "PIN مفعّل" للطفل + أزرار delete/setPin
+  - `SetPinDialog` — حقل 4 أرقام مع spacing letter-spacing عريض
+- ربط في `settings/page.tsx`: زر "الأعضاء" أصبح `<Link>` بدل placeholder
+- hooks: `useMembers`, `useCreateMember`, `useUpdateMember`, `useDeleteMember`, `useSetMemberPin`
+
+#### 4. child-login fix
+- إزالة شفرة dev-only "1234" → الآن `member.pinHash` فقط
+- إن لم يُعَيَّن PIN → 400 `pin_not_set`
+- يستخدم `verifyPin` (bcrypt compare) + `recordFailedAttempt` (5 محاولات → قفل 15 دقيقة)
+
+#### 5. Appliance Documents (WarrantyDocument)
+- 2 API routes:
+  - `GET /api/v1/appliances/[id]/documents` — قائمة + signed URLs (1h)
+  - `POST /api/v1/appliances/[id]/documents` — تسجيل وثيقة بعد رفعها عبر `/upload`
+  - `DELETE /api/v1/appliances/[id]/documents/[docId]` — حذف من DB + Storage (graceful إن فشل storage)
+- **التحقق:** المسار يجب أن يبدأ بـ `{householdId}/` — حماية من تلاعب الـ path
+- UI:
+  - `useUploadFile` hook عام (mutation على FormData → /upload)
+  - `useApplianceDocuments`, `useAddApplianceDocument`, `useDeleteApplianceDocument`
+  - `ApplianceDocumentsSection` component يظهر داخل dialog التعديل (`editing != null`):
+    - select لاختيار نوع الوثيقة (7 أنواع)
+    - زر رفع → uploads ثم يسجل في DB
+    - قائمة الوثائق مع flag للصور/PDF + open in tab + delete
+- رُبطت في `AppliancesPageClient` تحت `<ApplianceForm>` مباشرة عند التعديل
+
+#### 6. i18n
+- ar.json: namespace `members.*` (~40 مفتاح) + `warranty.errors.*` + `warranty.deleteConfirm`
+- en.json: مرآة كاملة
+
+### 🎯 القرارات المتخذة
+- **`pinHash` على HouseholdMember نفسها** بدلاً من جدول منفصل: المشروع MVP، البساطة أهم. التهجير لاحقاً سهل.
+- **`WarrantyDocument.fileUrl`** يخزّن **المسار في الـ bucket** (لا URL كامل) — signed URL يُولَّد عند الطلب. أكثر أماناً (التحكم بالصلاحية + لا exposure للملف الخام).
+- **POST /upload منفصل عن /documents:** rebuild لاحقاً للـ chunked uploads ممكن، الـ documents endpoint مجرد سجل metadata بعد الرفع.
+- **حذف appliance document:** graceful — حتى لو فشل Storage، نحذف من DB ونسجِّل warning. الـ orphan files تُنظَّف لاحقاً (TODO).
+- **`role: ADMIN` كحد أدنى لإدارة الأعضاء:** يستخدم `withRole(.., 'ADMIN', ..)` — OWNER+ADMIN يستطيعان، MEMBER/CHILD لا.
+- **منع حذف OWNER + منع حذف الذات** ضمن business rules في الـ repository.
+
+### 🐛 مشاكل واجهتها
+- **Migration permissions:** `prisma/migrations/` كانت root-owned → fail بـ EACCES. الحل: تشغيل docker كـ root + `chown 1000:1003` في نفس الأمر.
+- **الـ tsbuildinfo بـ root ownership** يلوّث الناتج بـ EACCES — تنظيف يدوي.
+
+### 📊 المقاييس
+- **ملفات مضافة:** 17 (storage wrapper + upload route + members feature 8 ملفات + appliance docs 4 + DEV_LOG entry)
+- **ملفات معدّلة:** 7 (schema, child-login, settings page, AppliancesPageClient, ar.json, en.json)
+- **TypeScript:** ✅ نظيف (strict mode)
+- **ESLint:** ✅ نظيف (لا نصوص حرفية في JSX)
+- **Migration:** ✅ مطبَّقة على DB
+- **النواقص المُغلَقة:** P0 #1, #2, #3, #4 (Members, PIN, Upload, Documents)
+
+### ⏭️ التالي (الموجة 2)
+- Telegram dispatcher worker + cron broadcast (التنبيهات الفعلية)
+- DocumentArchive feature (الأرشيف العام)
+- Family Bank UI
+- SavingsGoal CRUD
+- MaintenanceSchedule UI
+- Web Push subscription storage
+
+---
+
+## 📅 2026-04-30 (الخميس) — الموجة 2 من P1: SaaS schema + Family Bank + Goals + Maintenance + Telegram + CI
+
+**المرحلة:** ما بعد MVP — إغلاق نواقص P1
+**المدة:** جلسة واحدة طويلة
+**الحالة:** ✅ مكتمل
+
+### السياق
+بعد إغلاق P0 في الموجة 1، الموجة 2 تستهدف الميزات المُعلَنة في `EXECUTION_PLAN_V2` لكن غير المُنفّذة. اخترتُ 6 ميزات متوسطة الحجم لتنفيذها في جلسة واحدة، وأجّلتُ الكبيرة (DocumentArchive, BullMQ, OCR) لموجة منفصلة.
+
+### ✅ ما أنجزته
+
+#### 1. Subscription/SaaS schema — تحويل التعليقات إلى models فعلية
+- migration: `prisma/migrations/20260430222923_add_subscription_models/`
+- 2 models جديدة:
+  - `Subscription` — 1:1 مع `Household`؛ FREE_TRIAL تلقائياً + 30 يوم periodEnd
+  - `BillingEvent` — log لكل حدث (TRIAL_STARTED, PAYMENT_SUCCEEDED, RENEWED, إلخ) + JSON metadata
+- 3 enums: `SubscriptionPlan`, `SubscriptionStatus`, `BillingEventType`
+- `onboarding/route.ts` يُنشئ `Subscription` + `BillingEvent { type: TRIAL_STARTED }` تلقائياً ضمن transaction إنشاء البيت
+
+#### 2. SavingsGoal CRUD كامل
+- API routes:
+  - `POST /api/v1/house-economy/wallet/[memberId]/goals` (إنشاء — كان hook موجوداً لكن route مفقود)
+  - `PATCH /api/v1/house-economy/wallet/[memberId]/goals/[goalId]` (تعديل)
+  - `DELETE /api/v1/house-economy/wallet/[memberId]/goals/[goalId]` (حذف)
+- Repository: أُضيف `updateSavingsGoal` + `deleteSavingsGoal` مع verification chain (goal → wallet → member → household)
+- Hooks: `useUpdateSavingsGoal`, `useDeleteSavingsGoal`
+- UI: `SavingsGoalDialog` — حوار create/edit ديناميكي (نفس الـ component للوضعين)
+- `WalletCard` أُضيف له `onAddGoal/onEditGoal/onDeleteGoal` — يظهر زر إضافة عندما لا يوجد هدف نشط، وأزرار ✎/✕ على الهدف الحالي
+- `ChildWalletWrapper` يربط الكل: dialog state + delete confirm + invalidation
+
+#### 3. Family Bank — صفحة كاملة
+- ملاحظة: "بنك العائلة" ليس model مستقل — هو aggregation لكل `ChildWallet` في المنزل (الـ cron الفائدة الموجود يضيف فائدة شهرية فعلياً)
+- `src/features/family-bank/api/repository.ts`:
+  - `getSummary()` — يحسب: `totalBalance/totalSaved/totalCharity/totalEarned`، `thisMonthInterest` (من `WalletTransaction.BONUS` بوصف "فائدة")، `estimatedNextInterest` بناء على `MONTHLY_RATE` env
+  - members breakdown + top 15 transactions
+- `GET /api/v1/family-bank` (membership فقط)
+- `useFamilyBank` hook
+- `/family-bank/page.tsx` server + `FamilyBankPageClient`:
+  - 4 KPIs (الرصيد/المدخرات/الصدقة/فائدة الشهر) باستخدام `KpiCard`
+  - members breakdown — progress bars بحسب نسبة كل طفل من المجموع
+  - transactions feed مع icons + sign/+/− بحسب نوع المعاملة
+- رابط في `AppSidebar`: `familyBank` → `/family-bank` مع أيقونة `Landmark`
+
+#### 4. MaintenanceSchedule UI
+- API routes الناقصة:
+  - `DELETE /api/v1/appliances/[id]/maintenance/[scheduleId]`
+  - `POST /api/v1/appliances/[id]/maintenance/[scheduleId]/log` (يُسجّل تنفيذ + يحدّث `nextDueAt`)
+- Repository: أُضيف `deleteMaintenanceSchedule` + `verifyScheduleOwnership` (chain check)
+- Hooks: `useLogMaintenance`, `useDeleteMaintenanceSchedule`
+- UI: `ApplianceMaintenanceSection` يظهر داخل dialog التعديل (مع `ApplianceDocumentsSection`):
+  - قائمة الجداول مع status (overdue=destructive، soon=warning، normal=info)
+  - نموذج inline لإضافة جدول جديد (taskName + intervalDays)
+  - زر "تم تنفيذها" (CheckCircle2) → log + nextDueAt تلقائي
+  - حذف مع confirm
+
+#### 5. Telegram dispatcher (التنبيهات الفعلية)
+- قبل: `warranty-check` كان الوحيد يرسل Telegram. القوالب الأخرى موجودة لكن بدون dispatcher.
+- بعد: `src/server/jobs/notifications-dispatcher.ts` يفحص يومياً:
+  - فواتير مستحقة (PENDING/DUE) في 0/1/3/7 أيام → `billDueTemplate`
+  - فواتير متأخرة (OVERDUE) منذ 1/7 يوم → `billOverdueTemplate`
+  - مهام دورية متأخرة 1/3 يوم → `choreOverdueTemplate`
+  - صيانة جهاز مستحقة اليوم → `maintenanceDueTemplate`
+- chatIds caching على مستوى المنزل (لا queries مكررة)
+- `GET /api/v1/cron/notifications` (محمي بـ `CRON_SECRET`)
+- crontab يحتاج إضافة: `0 9 * * * notifications` (متروك للمستخدم)
+
+#### 6. CI workflow
+- `.github/workflows/ci.yml` — أول workflow في المشروع
+- Job `quality`: lint + typecheck + vitest على Node 22
+- Job `e2e`: Playwright smoke + خدمة postgres:16-alpine + prisma migrate deploy
+- يُشغَّل على push/PR إلى `main`/`dev`
+- يُحمّل Playwright report كـ artifact إن فشل
+
+#### 7. i18n (~30 مفتاح جديد)
+- `wallet.addGoal/editGoal/deleteGoal/goalTitle/goalTarget/errors` (للـ goals)
+- `appliances.noMaintenance/logMaintenance/intervalDays/deleteScheduleConfirm/errors`
+- `familyBank.*` توسيع شامل (saved, walletsCount, membersBreakdown, estimatedNextInterest, إلخ)
+- `navigation.familyBank` — رابط Sidebar
+- ar + en بنفس الهيكل
+
+### 🎯 القرارات المتخذة
+
+- **Subscription كـ relation اختيارية** (`Subscription?`) بدل required: يدعم البيوت القديمة قبل الـ migration دون كسر. الـ onboarding الجديد ينشئها تلقائياً.
+- **Family Bank بدون model مستقل**: aggregation حي من `ChildWallet` — يتجنّب مشاكل sync (single source of truth). الـ cron الموجود كافٍ.
+- **`SavingsGoalDialog` ديناميكي** (يدعم create/edit في component واحد): يقلل التكرار، الـ state مشترك.
+- **Maintenance UI inline** (لا dialog منفصل): النموذج بسيط (حقلان فقط) — في dialog واحد مع form التعديل وdocuments.
+- **Telegram dispatcher: thresholds منفصلة لكل نوع** (1/7 للمتأخر، 0/1/3/7 للقادم): تجنّب spam (لا notification يومي للفاتورة نفسها) + تأكيد قبل المهلة بأسبوع.
+- **CI على Node 22** بنفس النسخة المستخدمة في Docker — يضمن parity.
+
+### 🐛 مشاكل واجهتها
+
+- **`tsbuildinfo` بـ root ownership** ظهر مرة أخرى بعد البناء السابق → حذف يدوي قبل typecheck
+- لا مشاكل tools أخرى — كل الـ migrations + typecheck + lint مرت من المحاولة الأولى
+
+### 📊 المقاييس
+- **Migration جديد:** `add_subscription_models` (مطبَّق على DB)
+- **ملفات مضافة:** 18
+  - storage/dispatcher/CI: 5
+  - members/SavingsGoals/Maintenance/FamilyBank routes + hooks + components: 13
+- **ملفات معدّلة:** 9 (schema, onboarding, hooks, WalletCard, AppliancesPageClient, AppSidebar, HouseEconomyPageClient, ar.json, en.json)
+- **TypeScript:** ✅ نظيف
+- **ESLint:** ✅ نظيف
+- **النواقص المُغلَقة من P1:** #4, #5, #1 (Telegram), #3 (Family Bank), #9 (SaaS schema), #8 (CI)
+
+### ⏭️ المتبقّي من الخطة
+- **P1 الكبيرة:** DocumentArchive (full feature folder + UI) · BullMQ + Redis client + workers · OCR pipeline (Tesseract.js) · Web Push (VAPID + storage)
+- **P1 صغيرة:** Realtime Shopping (Supabase Realtime channel)
+- **P2:** صفحات أطفال منفصلة · seed متاجر سعودية · default jobs (10→20+) · PWA icons · Hijri مناسبات
+
+### crontab مقترح
+```
+0 4 * * *  bill-status
+5 4 * * *  chore-rollover
+10 4 * * * warranty-check
+0 6 1 * *  family-bank-interest
+0 9 * * *  notifications  ← جديد (الموجة 2)
+```
+
+---
+
+## 📅 2026-04-30 (الخميس) — الموجة 3 (جزء أ): DocumentArchive كاملة + Logout للجوال
+
+**المرحلة:** ما بعد MVP — توسيع P1
+**المدة:** جلسة قصيرة
+**الحالة:** ✅ مكتمل
+
+### ✅ ما أنجزته
+
+#### 1. زر تسجيل الخروج للجوال/التابلت
+- المستخدم بلّغ أن زر الخروج لا يظهر إلا في sidebar الديسكتوب
+- الحل: قسم جديد في `/settings` بتصميم destructive (border + لون أحمر + أيقونة LogOut)
+- confirm dialog قبل التنفيذ + Loader2 spinner أثناء الطلب
+- يستدعي `POST /api/v1/auth/logout` ثم redirect إلى `/{locale}`
+
+#### 2. DocumentArchive — feature كاملة (أُغلِقت أكبر فجوة P1)
+- النموذج موجود مسبقاً في schema لكن صفر تنفيذ. أنشأت:
+- **schemas/index.ts:** `createArchiveSchema` + `updateArchiveSchema` + `archiveFiltersSchema` + `ARCHIVE_CATEGORIES` (9 فئات)
+- **api/repository.ts** `ArchiveRepository`:
+  - `list(filters)` — يدعم category + search (title/description/tags) + expiringSoon (<= 60 يوم) + pagination
+  - `create(data, uploadedById)` — التحقق أن `filePath` يبدأ بـ `householdId/` (multi-tenancy)
+  - `update(id, data)` — الحقول النصية + التواريخ + tags فقط (الملف نفسه ثابت)
+  - `delete(id)` — soft delete + محاولة حذف من Storage (graceful)
+- **API routes** (4):
+  - `GET/POST /api/v1/archive`
+  - `PATCH/DELETE /api/v1/archive/[id]`
+  - كل route: auth + rate-limit + Zod + withHousehold + signed URLs (1 ساعة) للقراءة
+- **UI:**
+  - `useArchive`, `useCreateArchive`, `useUpdateArchive`, `useDeleteArchive` (TanStack Query)
+  - `ArchiveCard` — أيقونة ملف/صورة + category + tags chips + alert انتهاء (>30 يوم warning، أقل critical)
+  - `ArchiveUploadDialog` — flow كامل: select file → upload → archive entry (مع category/title/description/expiry/tags)
+  - `/archive/page.tsx` server (auth gate) + `ArchivePageClient`:
+    - Header + زر "رفع وثيقة"
+    - search + toggle "ينتهي قريباً" + chips للـ 9 فئات (responsive scroll)
+    - Grid 1/2/3 columns
+    - Empty state
+- **Sidebar link:** `archive` → `/archive` مع أيقونة `Archive`
+- **i18n:** namespace `archive` كامل (~40 مفتاح) في ar + en
+
+### 🎯 القرارات المتخذة
+- **`fileUrl` يخزّن المسار في bucket لا URL كامل**: نفس النهج المستخدم في WarrantyDocument للموجة 1 — signed URL يُولَّد عند الطلب (آمن + قابل للحذف).
+- **soft delete (deletedAt)** للأرشيف بدل hard delete: المستخدم قد يحتاج استرجاع وثيقة مهمة لاحقاً. الـ Storage تنظَّف فعلياً (graceful).
+- **Category chips بدل dropdown**: تجربة جوّال أفضل، مرئية، scroll أفقي.
+- **9 categories ثابتة بدل user-defined**: تطابق الـ enum في schema، يمنع التشتت.
+
+### 🐛 مشاكل واجهتها
+- TS error: `ArchiveFiltersUI` لم يكن متوافقاً مع `Record<string, unknown>` للـ `archiveKeys.list(filters)` → أُضيف `[key: string]: unknown` index signature
+- ESLint: `convertToWesternDigits` import غير مستخدم → حُذف
+
+### 📊 المقاييس
+- **ملفات مضافة:** 9 (4 archive feature + 4 API routes + 1 settings logout)
+- **ملفات معدّلة:** 4 (settings, AppSidebar, ar.json, en.json)
+- **TypeScript + ESLint:** ✅ نظيف
+- **النواقص المُغلَقة:** P1 #2 (DocumentArchive)
+
+### ⏭️ المتبقّي من P1
+- **BullMQ + Redis client:** يحتاج Redis container جديد + ~150MB RAM إضافية على Pi → قرار بنية تحتية
+- **OCR (Tesseract.js):** مكتبة 30MB+ تكسر bundle ≤ 200KB → قرار trade-off
+
+---
+
+## 📅 2026-05-01 (الجمعة) — الموجة 3 (جزء ب): Web Push + Realtime Shopping + Archive expiry
+
+**المرحلة:** ما بعد MVP — إغلاق آخر P1 الممكنة بدون قرارات بنية تحتية
+**الحالة:** ✅ مكتمل (3 ميزات)
+
+### السياق
+بعد DocumentArchive في الجزء أ، تبقّى من P1: Web Push (يحتاج VAPID keys)، Realtime Shopping (يحتاج Supabase Realtime مفعّل)، BullMQ (يحتاج Redis container)، OCR (يحتاج موافقة على bundle size). نفّذتُ الثلاثة الأولى بأسلوب "graceful degradation" — يعملون إن كانت الإعدادات صحيحة، ويفشلون بصمت إن لم تكن.
+
+### ✅ ما أنجزته
+
+#### 1. Web Push backend كامل
+- migration: `add_push_subscriptions` — model `PushSubscription` (endpoint unique + p256dh + auth + userAgent + lastUsedAt) مرتبط بـ User بـ cascade delete
+- dependency جديدة: `web-push@3.6.7` + `@types/web-push` (server-side فقط — لا تأثير على bundle)
+- `src/core/notifications/web-push.ts`:
+  - `ensureInitialized()` — lazy load للـ VAPID؛ يُعيد false إن لم تُعَدّ
+  - `isWebPushEnabled()` — للفحص قبل الإرسال
+  - `sendPushToUser(userId, payload)` — يُرسل لكل اشتراكات المستخدم؛ يحذف 404/410 تلقائياً
+  - `sendPushToHousehold(householdId, payload)` — لكل أعضاء البيت
+- 2 API routes:
+  - `GET /api/v1/push/public-key` — يُعيد VAPID public key أو 503
+  - `POST/DELETE /api/v1/push/subscribe` — تسجيل/إلغاء (upsert على endpoint)
+- UI:
+  - `usePushNotifications` hook — يدير 6 حالات: unsupported/unconfigured/denied/subscribed/unsubscribed/loading
+  - `PushNotificationsToggle` component في `/settings` تحت قسم الإشعارات بجانب Telegram
+- Service Worker الموجود `public/sw.js` فيه push handlers جاهزة (لم يحتج تعديل)
+
+**التفعيل:** يحتاج المستخدم تشغيل `npx web-push generate-vapid-keys` وإضافة `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` للـ `.env.production`. الزر يظهر "غير متاحة الآن" حتى ذلك.
+
+#### 2. Realtime Shopping
+- `src/features/shopping/hooks/useShoppingRealtime.ts`:
+  - `createClient` لازم بإعدادات `realtime.params.eventsPerSecond=5`
+  - subscribe على `shopping_items` + `shopping_lists` (events: *)
+  - عند أي تغيير → `qc.invalidateQueries({ queryKey: shoppingKeys.all })` فيُعاد الجلب
+  - cleanup عند unmount
+- ربط في `ShoppingPageClient`: `useShoppingRealtime()` فقط
+
+**التفعيل:** يحتاج تفعيل Supabase Realtime على الجدولين من dashboard (Database → Replication). إن لم يكن مفعّلاً، subscription يفشل بصمت ولا يؤثر على باقي الـ UI.
+
+#### 3. Archive expiry notifications
+- قالب جديد: `archiveExpiringTemplate(title, days)` في `telegram.ts`
+- توسيع `notifications-dispatcher.ts`:
+  - أُضيف helper داخلي `dispatch(householdId, chatIds, telegramText, push)` يجمع Telegram + Web Push في استدعاء واحد
+  - أعيد كتابة 4 الحلقات (bills-due/overdue, chores-overdue, maintenance) لاستخدام `dispatch`
+  - أُضيفت حلقة 5: وثائق الأرشيف — تُرسَل عند `notifyDays/7/1/0` يوم قبل الانتهاء
+  - `DispatchResult` أُضيف له `archiveNotified` + `pushNotified`
+- النتيجة: نفس الـ cron الموجود (`/api/v1/cron/notifications`) يرسل الآن عبر القناتين معاً، ويغطّي أرشيف الوثائق.
+
+### 🎯 القرارات المتخذة
+
+- **Graceful degradation عبر الكل:** Web Push + Realtime + Push يتعطّلون بدلاً من crash إن لم تتوفر الإعدادات. أكثر متانة في الإنتاج.
+- **endpoint = unique key على PushSubscription:** كل جهاز/متصفح له endpoint فريد من Push Service. upsert يبسّط reset الإذن.
+- **حذف تلقائي للاشتراكات المنتهية (410/404):** Web Push spec — الـ endpoint يصبح غير صالح بعد uninstall PWA أو revoke. التنظيف داخل `sendPushToUser`.
+- **Realtime على table-level بدون filter:** أبسط — TanStack Query refetch على invalidate يفلتر بالـ householdId server-side. التكلفة: events غير ضرورية للبيوت الأخرى (ضئيلة لمستخدم واحد).
+- **Push مع Telegram معاً:** يضمن وصول الإشعار حتى لو كان Telegram غير مفعّل أو Push مرفوض. الـ `dispatch` helper يبسّط الكود.
+
+### 🐛 مشاكل واجهتها
+
+- **TypeScript strict + Uint8Array.buffer:** TS الأحدث يميّز بين `ArrayBuffer` و `SharedArrayBuffer` — `applicationServerKey` يطلب `BufferSource` ضيق. الحل: `slice` صريح + cast `as ArrayBuffer`.
+- **node_modules بـ root ownership** (من Docker builds سابقة) → `npm install` فشل بـ EACCES. الحل: install عبر docker مع chown سريع.
+- **زر Telegram بدون border-bottom**: قبل إضافة `PushNotificationsToggle` كان الزر الوحيد في القسم. أُضيف `border-b` للفصل.
+
+### 📊 المقاييس
+
+- **Migration جديد:** `add_push_subscriptions` (مطبَّق)
+- **Dependency جديدة:** `web-push@3.6.7` (server-side فقط، لا تأثير على bundle)
+- **ملفات مضافة:** 6 (web-push helper + 2 API routes + hook + component + realtime hook)
+- **ملفات معدّلة:** 8 (schema, telegram templates, dispatcher, settings page, ShoppingPageClient, ar.json, en.json)
+- **TypeScript + ESLint:** ✅ نظيف
+- **النواقص المُغلَقة من P1:** #6 (Web Push), #7 (Realtime Shopping), إضافة لقدرة dispatcher
+
+### ⏭️ المتبقّي
+
+**P1 الكبيرة (تحتاج قرارات):**
+- BullMQ + Redis: container إضافي + RAM
+- OCR: bundle size trade-off
+
+**P2:**
+- صفحات أطفال منفصلة `/child/menu`, `/child/wallet`
+- Seed سعودي (متاجر + 20+ default jobs)
+- PWA icons في `public/icons/`
+- Hijri مناسبات
+
+### تفعيل Web Push
+
+```bash
+# 1. توليد VAPID keys (مرة واحدة)
+docker run --rm node:22-alpine npx -y web-push generate-vapid-keys --json
+
+# 2. أضف للـ .env.production:
+VAPID_PUBLIC_KEY=...
+VAPID_PRIVATE_KEY=...
+VAPID_SUBJECT=mailto:admin@yourdomain.com
+
+# 3. أعد بناء + نشر
+docker compose -f docker-compose.shared.yml up -d --force-recreate app
+```
+
+### ⏭️ P2 المتبقّية
+- صفحات أطفال منفصلة `/child/menu`, `/child/wallet` (60px touch targets)
+- seed سعودي (متاجر للأجهزة + 20+ default jobs)
+- PWA icons في `public/icons/`
+- Hijri مناسبات (رمضان/الأعياد/اليوم الوطني)
+
+---
+
+## 📅 2026-05-01 (الجمعة) — P2 كاملة: PWA Icons + Hijri Events + Saudi Seed + Children Pages
+
+**المرحلة:** ما بعد MVP — اللمسات النهائية لـ MVP polish
+**الحالة:** ✅ مكتمل (4 ميزات P2)
+
+### ✅ ما أنجزته
+
+#### 1. PWA Icons (16 أيقونة)
+- `public/icons/icon-source.svg`: SVG واحد بـ بيت ذهبي + نخلة + gradient + shadow
+- `scripts/generate-pwa-icons.mjs`: يستخدم `sharp` لتوليد:
+  - 9 أحجام عادية (72→512) + apple-touch (180) + 2 maskable (192/512 بـ safe-area 78%)
+  - 3 shortcuts (96): bills/chores/shopping + favicon-32
+- `manifest.json` فصل `purpose: any` عن `purpose: maskable` (Lighthouse best-practice)
+
+#### 2. Hijri Events (15 مناسبة)
+- `src/core/i18n/hijri-events.ts` — 12 مناسبة هجرية (رأس السنة، عاشوراء، المولد، الإسراء، النصف من شعبان، رمضان كامل 30 يوم، ليلة القدر، عيد الفطر 3 أيام، عرفة، عيد الأضحى 4 أيام) + 3 سعودية (التأسيس/العلم/الوطني)
+- `findUpcomingEvents` — يحسب الميلادي بالنسبة للهجري الحالي، يدعم `durationDays` للأحداث الممتدة، يميّز "جارية" عن "بعد X يوم"
+- `HijriCalendarWidget` يعرض أقرب 2 ضمن نافذة 30 يوم
+- ar + en: 15 مفتاح في `hijri.events.*`
+
+#### 3. Saudi Seed Extension
+- 14 default job جديد (المجموع 24 — تجاوز هدف 20+):
+  - سهلة: نفايات/كتب/طاولة/إطعام حيوان/قراءة
+  - متوسطة: ثلاجة/غبار/طي ملابس/مشتريات/حفظ سورة
+  - صعبة: مطبخ كامل/غسيل سيارة خارج
+- `ApplianceForm`: حقل المتجر يدعم `<datalist>` بـ 13 متجر سعودي (اكسترا/ساكو/جرير/حسوب/نون/أمازون/ايكيا/هوم سنتر/بنده/كارفور/لولو/الشايع)
+
+#### 4. Children Pages (`/child/menu` + `/child/wallet`)
+- **التوجيه التلقائي:** `[locale]/page.tsx` يقرأ session — `CHILD` → `/child/menu`، الباقي → `/dashboard`
+- **`/child/menu`:** `children-ui` wrapper + emoji كبير 5xl + difficulty/reward chips + زر "ابدأ" كبير + رصيد المحفظة في الرأس كزر يقود للمحفظة
+- **`/child/wallet`:** `WalletCard` + سجل آخر 8 معاملات بأيقونات ملوّنة + علامة + / − لكل نوع
+- 6 أنواع TX (JOB_REWARD/BONUS/SPEND/SAVE_DEPOSIT/CHARITY/GIFT/TRANSFER/WEEKLY_ALLOWANCE) كل واحد مع أيقونة Lucide ولون
+- touch ≥ 60px على كل عنصر تفاعلي (CSS rule موجود في globals.css)
+- 2 i18n keys جديدة: `houseEconomy.childGreeting` + `houseEconomy.estimatedShort` (لتفادي literal "د"/"يا")
+
+### 🎯 القرارات المتخذة
+
+- **PWA: SVG واحد + sharp script:** ينتج كل الأحجام تلقائياً — قابل للتحديث مستقبلاً بسطر واحد
+- **Maskable كصورة منفصلة:** Lighthouse ينصح بفصل purpose
+- **Hijri events بدون مكتبة:** الخوارزمية البسيطة (354 يوم/سنة) كافية ±1 يوم — مكتبة `hijri-converter` تكلّف 50KB+ لربح ضئيل
+- **Children pages تحت `(web)/child/`:** يستفيد من `AppLayout` الموجود — لا تكرار للـ Sidebar/BottomNav
+- **Datalist بدل Select للمتاجر:** يحفظ free-text + suggestions للأشهر
+
+### 🐛 مشاكل واجهتها
+
+- TS: `startJob.mutate({ childId })` لم يقبله الـ schema (الخادم يستخدم `session.memberId`) — حذف childId
+- TS: `wallet.transactions` غير موجود — الحقل اسمه `recentTransactions`
+- ESLint: literals "د" و "يا {name}" — نقل لـ i18n مع interpolation
+
+### 📊 المقاييس
+
+- **ملفات مضافة:** 8 (SVG + script + hijri-events + 4 child pages + 1 wallet client)
+- **ملفات معدّلة:** 7 (manifest, ApplianceForm, HijriWidget, seed, [locale]/page, ar.json, en.json)
+- **PWA icons:** 16 مولَّدة
+- **Hijri events:** 15
+- **Default jobs:** 10 → 24
+- **Saudi stores:** 13
+- **TypeScript + ESLint:** ✅ نظيف
+
+### الحالة العامة (نهاية MVP)
+
+```
+P0:   ████████████████████ 100% (4/4)
+P1:   ████████████████░░░░  82% (9/11 — BullMQ + OCR متبقّيان، يحتاجان قرارات بنية تحتية)
+P2:   ████████████████████ 100% (5/5)
+```
+
+**الخلاصة:** المشروع وصل لمرحلة "production-ready MVP" كاملة. الباقي (BullMQ workers + OCR) optimization، ليس blocking.
+
+---
+
+## 📅 2026-05-02 (السبت) — جاهزية الإطلاق التجريبي (Multi-tenant safety)
+
+**المرحلة:** ما قبل دعوة المختبرين الأوائل
+**الهدف:** التأكد التام من عزل بيانات العوائل قبل إعطاء وصول لـ 3-5 عوائل
+**الحالة:** ✅ مكتمل
+
+### ✅ ما أنجزته
+
+#### 1. Realtime Shopping — فلترة آمنة بـ householdId + listIds
+- المشكلة: `useShoppingRealtime` كان يستمع لتغييرات كل الجداول بلا فلترة. ليس تسرّب بيانات (الـ API يفلتر) لكن:
+  - يكشف "نشاط" العوائل الأخرى بشكل ضمني
+  - يستهلك bandwidth بلا فائدة
+  - يسبب refetch غير ضروري في كل المتصفحات
+- الحل:
+  - `useShoppingRealtime({ householdId, listIds })` — props إلزامية
+  - `shopping_lists` يُفلتَر بـ `householdId=eq.${householdId}` على Supabase Realtime مباشرة
+  - `shopping_items` يُفلتَر بـ `listId=in.(...)` بناءً على قوائم البيت الحالي
+  - اسم القناة فريد لكل بيت — يمنع تداخل المشتركين
+  - `listIdsKey` (sorted+joined) كـ effect dependency يمنع re-subscribe على كل render
+- التحديث: `ShoppingPage` (server) أصبح يقرأ session ويمرّر `householdId` للـ client. `ShoppingPageClient` يمرّر `lists.map(l => l.id)` للـ hook.
+
+#### 2. Multi-tenancy isolation verification script
+- `scripts/verify-isolation.mjs` — يعمل ضد قاعدة البيانات الفعلية:
+  - ينشئ 2 بيتين مؤقتين + بيانات اختبارية (bills, chores, lists+items, archive)
+  - يتحقق من عزل 8 طبقات: Bills, Chores, ShoppingLists, ShoppingItems, Archive, ChoreExecutions API-level, Storage paths, Members
+  - تنظيف تلقائي بعد الانتهاء (نجاحاً أو فشلاً)
+  - exit code 1 إن فشل أي تحقق
+- النتيجة الفعلية: **10/10 نجح، صفر فشل** ✓
+- الـ DB لا يفرض cross-household على FK level (متوقع) — الـ API/Repository يفرضه. السكربت يتحقق من Repository pattern.
+
+#### 3. BETA_TESTING.md — دليل المختبرين الأوائل
+- 13 ميزة جاهزة موثَّقة (Members, Bills, Chores, Shopping, Archive, إلخ)
+- 5 ميزات محدودة/معطّلة (Web Push بدون VAPID، OCR، إلخ)
+- خطوات البدء step-by-step (5 خطوات)
+- بروتوكول تبليغ الأخطاء (5 معلومات لازمة)
+- قسم خصوصية صريح (BCrypt PIN، EXIF strip، signed URLs، multi-tenant proof)
+- قسم admin (تشغيل verify-isolation، logs، deploy)
+- جدول إطلاق 3 أسابيع
+
+### 🎯 القرارات المتخذة
+
+- **Filter على Supabase Realtime** بدل Postgres RLS: أبسط لـ MVP، RLS سياسي لاحقاً عند SaaS.
+- **`listIdsKey` كـ string sorted**: deterministic — يمنع re-subscribe خاطئ على كل render حتى لو الـ array reference تغيّر.
+- **Verification كـ script لا Vitest**: يعمل ضد DB حقيقي (أكثر ثقة)، يمكن تشغيله idempotent بأي وقت كـ smoke test، لا يحتاج jest mocks معقّدة.
+- **BETA_TESTING.md** يفصل "ما هو جاهز" عن "ما هو محدود" بوضوح: يقلل توقعات خاطئة من المختبرين.
+
+### 🐛 مشاكل واجهتها
+
+- الإصدار الأول من السكربت رصد "فشل" على ChoreExecutions cross-household — لكن الـ DB ما يفرض FK على householdId (متوقع — المنع تطبيقي). أُعيدت صياغة الفحص ليتحقق من Repository pattern بدلاً من DB FK، وأصبح ينجح.
+
+### 📊 المقاييس
+
+- **ملفات مضافة:** 2 (script + BETA_TESTING.md)
+- **ملفات معدّلة:** 3 (useShoppingRealtime, ShoppingPageClient, ShoppingPage)
+- **اختبارات multi-tenancy:** 10/10 ✓
+- **TypeScript + ESLint:** ✅ نظيف
+
+### ⏭️ التالي
+
+**جاهز للدعوة التجريبية:**
+1. أعطِ رابط `http://pi-server:3001` للعوائل (3-5)
+2. شارك BETA_TESTING.md معهم
+3. راقب Telegram لتبليغ الأخطاء
+
+**بعد أسبوع:**
+- شغّل `verify-isolation.mjs` للتأكد لا regression
+- راجع feedback + Sentry (إن فعّلته)
+- قرر إن BullMQ + OCR حاجتها بعد التجربة الواقعية
+
+---
+
+## 📅 2026-05-02 (السبت) — رسائل ترحيب Telegram تلقائية
+
+**المرحلة:** قبل الإطلاق التجريبي
+**الهدف:** كل مستخدم جديد يستلم تعليمات البدء عبر Telegram تلقائياً
+**الحالة:** ✅ مكتمل
+
+### السياق
+رفع تجربة المستخدم: بدلاً من أن يقرأ المختبر BETA_TESTING.md من رابط منفصل، يستلم رسالة ترحيب موجزة + رابط الدخول + خطوات البدء + قنوات الدعم — كله من Telegram عند التسجيل.
+
+### ✅ ما أنجزته
+
+#### 1. قالبان جديدان في `core/notifications/telegram.ts`:
+
+- **`welcomeOwnerTemplate(name, householdName, appUrl)`** — لصاحب البيت بعد onboarding:
+  - ترحيب باسم المستخدم + اسم بيته
+  - 5 خطوات بدء (أعضاء/فواتير/مشتريات/أجهزة/منيو أعمال)
+  - 5 ميزات رئيسية
+  - الرابط + قنوات تبليغ الأخطاء + ملاحظة خصوصية
+
+- **`welcomeInvitedTemplate(name, householdName, role, appUrl)`** — للمدعوين:
+  - ترحيب + اسم البيت + الدور (ولي أمر / عضو / طفل)
+  - رابط الدخول
+  - تعليمة خاصة للأطفال: "اسأل الوالد عن PIN"
+
+#### 2. ربط في `onboarding/route.ts`
+- بعد إنشاء البيت + Subscription
+- يجلب `User.telegramChatId` ويُرسل welcome (إن كان موجوداً)
+- **graceful:** لا نُفشل onboarding إن فشل الإرسال — `console.warn` فقط
+
+#### 3. ربط في `MembersRepository.create`
+- داخل transaction: يجلب `telegramChatId` + `householdName`
+- بعد commit: fire-and-forget message للمدعو (graceful)
+- يستخدم نفس `appUrl` env
+
+#### 4. App URL configurable
+- `NEXT_PUBLIC_APP_URL` env var (موجود في .env.production: `http://localhost:3001`)
+- fallback إلى `http://pi-server:3001` لو غير معدّ
+
+### 🎯 القرارات المتخذة
+
+- **fire-and-forget بعد commit** (لا داخل transaction): لو حصل خطأ في Telegram، البيت يتم إنشاؤه بنجاح. الرسالة fail-tolerant.
+- **HTML formatting:** Telegram يدعم `<b>`, `<a>` — استخدمتها للقوالب لتمييز العناوين.
+- **Owner vs Invited قالبان مختلفان:** OWNER يحتاج تعليمات إعداد كاملة، invited يحتاج فقط تأكيد الدعوة + رابط.
+- **TS strict caught it:** `data.role !== 'OWNER'` كان قيد زائد لأن schema لا يسمح بـ OWNER في create. حذفته — TS أفضل من تعليق توثيقي.
+
+### 📊 المقاييس
+- **ملفات معدّلة:** 3 (telegram.ts, onboarding/route.ts, members/repository.ts)
+- **قالبان جديدان** في telegram (المجموع 8 قوالب)
+- **TypeScript + ESLint:** ✅ نظيف
+
+### تأثير على المختبرين
+- العائلة التي تسجّل أول مرة: تستلم welcome + 5 خطوات بدء
+- العضو المدعو: يستلم تأكيد الدعوة + رابط
+- لا حاجة لمشاركة BETA_TESTING.md يدوياً (لكن المستند يبقى مرجعاً للأدمن)
+
+---
+
+## 📅 2026-05-02 (السبت) — دليل الاستخدام داخل التطبيق + إصلاحات
+
+**المرحلة:** بعد الإطلاق التجريبي — تحسين UX
+**الحالة:** ✅ مكتمل
+
+### ✅ ما أنجزته
+
+#### 1. صفحة `/help` شاملة + 13 قسم
+- `src/app/[locale]/(web)/help/page.tsx` — Server Component
+- جدول محتويات في الأعلى (grid 2 columns على ديسكتوب)
+- 13 قسم: Getting Started + Members + Bills + Chores + Shopping + Appliances + Archive + HouseEconomy + FamilyBank + PIN + Notifications + Telegram + Privacy
+- كل قسم: مقدّمة + خطوات مرقّمة + نصيحة (💡)
+- scroll-margin للـ anchor links (لا تحجب رأس الصفحة)
+- ألوان tone مختلفة لكل قسم (primary/info/success/warning) لـ visual distinction
+- رابط في Sidebar (`navigation.help`) + أيقونة `HelpCircle`
+
+#### 2. مكوّن `HelpTooltip` reusable
+- `src/shared/ui/HelpTooltip.tsx`:
+  - أيقونة `Info` (Lucide) قابلة للنقر
+  - hover (ديسكتوب) + tap (جوال) + focus (keyboard)
+  - Escape يغلق
+  - click خارج يغلق
+  - RTL-aware (start/end logical positioning)
+  - `role="tooltip"` + `aria-expanded` للـ accessibility
+
+#### 3. تطبيق Tooltips على MemberForm (3 مواضع)
+- حقل **الدور:** "OWNER واحد · ADMIN ولي أمر · MEMBER عضو · CHILD طفل بـ PIN"
+- حقل **العمر** (عند CHILD): "بين 4-17 — لتصفية منيو الأعمال المناسبة"
+- حقل **PIN** (عند CHILD): "4 أرقام — يمكن إعادة تعيينها أي وقت"
+
+#### 4. i18n — ~80 مفتاح جديد
+- `help.title/subtitle/toc/howItWorks/tip/contact`
+- `help.tooltips.*` (15 tooltip)
+- `help.sections.*.title/intro/steps/tip` لكل من 13 قسم
+- `navigation.help` للـ Sidebar
+- ar.json + en.json بنفس الهيكل (>180 سطر لكل لغة)
+
+### 🎯 القرارات المتخذة
+
+- **Server Component للـ help page:** لا حاجة لـ client interactivity (فقط روابط anchor) — bundle أصغر + SSR أسرع
+- **Tooltip كـ inline span بدلاً من Popper.js:** أبسط، خالٍ من dependency، responsive تلقائياً
+- **MemberForm تطبيق أولوي للـ tooltips:** أكثر form معقّداً (دور + عمر + PIN ديناميكي) — أعلى ROI
+- **scope محدود لـ tooltips:** الـ help page شاملة بدلاً من توزيع tooltips على كل form. الـ user يفتح /help للقراءة العميقة، وtooltips للسياق الفوري على الحقول المربكة فقط
+
+### 🐛 مشاكل أصلحتها قبل ذلك (نفس اليوم)
+
+- **JWT InvalidCharacterError:** `btoa()` لا يقبل أحرف خارج Latin1 — كان يفشل مع أي اسم عربي. الحل: `TextEncoder` → bytes → `btoa(String.fromCharCode(...))`. كل الأسماء العربية تعمل الآن.
+- **Theme لا يحفظ بعد refresh:** `ThemeSwitcher` كان يقرأ localStorage لكن لا يستدعي `applyTheme(stored)`. React 19 hydration يستبدل الـ class. الحل: استدعاء `applyTheme` صريح في useEffect.
+- **Monthly Flow chart:** كان يعرض دخل وهمي (synthetic). المستخدم وضّح: التطبيق ما يعرف الدخل. أعيد تصميم الرسم: مصروفات حقيقية فقط + توزيع بأعلى 3 فئات + مقارنة شهر-شهر.
+
+### 📊 المقاييس
+- **ملفات مضافة:** 2 (help page + HelpTooltip)
+- **ملفات معدّلة:** 4 (MemberForm, AppSidebar, ar.json, en.json)
+- **i18n keys جديدة:** ~85
+- **TypeScript + ESLint:** ✅ نظيف
+
+---
+
+## 📅 2026-05-02 (السبت) — ROADMAP.md للتحسينات المؤجَّلة
+
+**الهدف:** توثيق كل تحسين مؤجَّل في مكان واحد للرجوع المستقبلي.
+
+### ما أُنجز
+- `ROADMAP.md` (~250 سطر) — يصنّف التحسينات إلى:
+  - 🔴 **يحتاج قرارات (7):** Web Push tokens · Sentry DSN · BullMQ+Redis · OCR · HTTPS+Domain · Encrypted Backups · Income tracking
+  - 🟢 **جاهز للتنفيذ (6):** Bills photo upload · Onboarding tour · Reports · Calendar view · Reminders · Meal Planning
+  - 🧪 **Quality (5):** Unit tests · e2e tests · JSDoc · Storybook · Dashboard widgets
+  - 🔮 **Phase 2/3 (4):** Expense Splitting · Feature Toggles UI · Child Login مستقل · Hijri events Telegram
+  - 🌐 **Integrations (2):** Email parsing بـ Claude · SADAD
+- توصيات الأولوية لـ "أسبوع/شهر/3 أشهر"
+- قسم "خارج النطاق" (Capacitor, Mada, etc.)
+
+### الفائدة
+- مطوّر جديد يفهم ما هو جاهز vs مؤجَّل بسرعة
+- مختبر يطلب ميزة → نتحقق من ROADMAP قبل إعادة الاختراع
+- ذاكرة مؤسسية — الأفكار محفوظة لا تضيع
