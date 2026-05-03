@@ -19,6 +19,7 @@ import {
   Landmark,
   Archive,
   HelpCircle,
+  ShieldCheck,
   Settings,
   LogOut,
 } from 'lucide-react';
@@ -40,7 +41,11 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'archive', href: '/archive', icon: Archive },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  isAdmin?: boolean;
+}
+
+export function AppSidebar({ isAdmin = false }: AppSidebarProps) {
   const t = useTranslations('navigation');
   const locale = useLocale();
   const pathname = usePathname();
@@ -97,8 +102,17 @@ export function AppSidebar() {
         </ul>
       </nav>
 
-      {/* Footer: Help + Settings + Logout */}
+      {/* Footer: Admin (if super-admin) + Help + Settings + Logout */}
       <div className="px-3 py-4 border-t border-border flex flex-col gap-1">
+        {isAdmin && (
+          <Link
+            href={`/${locale}/admin`}
+            className="flex items-center gap-3 rounded-xl px-3 min-h-[44px] text-sm font-medium text-primary hover:bg-primary/10 transition-smooth"
+          >
+            <ShieldCheck size={20} aria-hidden="true" />
+            {t('admin')}
+          </Link>
+        )}
         <Link
           href={`/${locale}/help`}
           className="flex items-center gap-3 rounded-xl px-3 min-h-[44px] text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-smooth"

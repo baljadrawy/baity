@@ -20,6 +20,8 @@
  * ───────────────────────────────────────────────
  */
 
+import { getServerSession } from '@/core/auth/server-session';
+import { isSuperAdminUser } from '@/core/auth/super-admin';
 import { AppSidebar } from './AppSidebar';
 import { BottomNav } from './BottomNav';
 import { AppHeader } from './AppHeader';
@@ -29,11 +31,14 @@ interface AppLayoutProps {
   title?: string;
 }
 
-export function AppLayout({ children, title }: AppLayoutProps) {
+export async function AppLayout({ children, title }: AppLayoutProps) {
+  const session = await getServerSession();
+  const isAdmin = session ? await isSuperAdminUser(session.userId) : false;
+
   return (
     <div className="flex h-svh overflow-hidden bg-background">
       {/* Sidebar — Desktop فقط */}
-      <AppSidebar />
+      <AppSidebar isAdmin={isAdmin} />
 
       {/* المنطقة الرئيسية */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
@@ -57,7 +62,7 @@ export function AppLayout({ children, title }: AppLayoutProps) {
       </div>
 
       {/* Bottom Navigation — Mobile/Tablet فقط */}
-      <BottomNav />
+      <BottomNav isAdmin={isAdmin} />
     </div>
   );
 }

@@ -23,6 +23,7 @@ import {
   Landmark,
   Archive,
   HelpCircle,
+  ShieldCheck,
   Settings,
   MoreHorizontal,
   X,
@@ -50,17 +51,29 @@ const MORE_ITEMS: NavItem[] = [
   { key: 'settings', href: '/settings', icon: Settings },
 ];
 
-export function BottomNav() {
+const ADMIN_ITEM: NavItem = {
+  key: 'admin',
+  href: '/admin',
+  icon: ShieldCheck,
+};
+
+interface BottomNavProps {
+  isAdmin?: boolean;
+}
+
+export function BottomNav({ isAdmin = false }: BottomNavProps) {
   const t = useTranslations('navigation');
   const locale = useLocale();
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
 
+  const moreItems = isAdmin ? [ADMIN_ITEM, ...MORE_ITEMS] : MORE_ITEMS;
+
   const isActive = (href: string) =>
     pathname === `/${locale}${href}` || pathname.startsWith(`/${locale}${href}/`);
 
   // هل الصفحة الحالية في الـ "more" sheet؟
-  const moreActive = MORE_ITEMS.some((it) => isActive(it.href));
+  const moreActive = moreItems.some((it) => isActive(it.href));
 
   return (
     <>
@@ -151,7 +164,7 @@ export function BottomNav() {
             </header>
 
             <ul className="grid grid-cols-3 gap-2 p-4" role="list">
-              {MORE_ITEMS.map(({ key, href, icon: Icon }) => {
+              {moreItems.map(({ key, href, icon: Icon }) => {
                 const active = isActive(href);
                 return (
                   <li key={key}>
