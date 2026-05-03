@@ -761,6 +761,8 @@
     "phoneLabel": "رقم الجوال",
     "phonePlaceholder": "05xxxxxxxx",
     "phoneHint": "أدخل رقم جوالك السعودي لاستلام رمز التحقق",
+    "phoneMustStart": "يجب أن يبدأ بـ 05",
+    "phoneRemaining": "{count} أرقام متبقية",
     "sending": "جاري الإرسال...",
     "linkTelegramTitle": "اربط حسابك بـ Telegram أولاً",
     "linkTelegramDesc": "نُرسل رموز تسجيل الدخول عبر Telegram (مجاناً وبأمان). افتح البوت وشارك رقمك مرة واحدة.",

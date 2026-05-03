@@ -2186,3 +2186,49 @@ P2:   ████████████████████ 100% (5/5)
 - مطوّر جديد يفهم ما هو جاهز vs مؤجَّل بسرعة
 - مختبر يطلب ميزة → نتحقق من ROADMAP قبل إعادة الاختراع
 - ذاكرة مؤسسية — الأفكار محفوظة لا تضيع
+
+---
+
+## 📅 2026-05-03 (الأحد) — إصلاحات قبل المختبرين + نشر عام عبر Tailscale Funnel
+
+**الحالة:** ✅ التطبيق جاهز للاستخدام التجريبي العام
+
+### 🔴 الإصلاح الأهم: Hydration mismatch — `<html>` متداخل
+
+**الأثر:** زر تسجيل الدخول معطّل تماماً، React state يُصفَّر مع كل ضغطة.
+
+**السبب:**
+- `app/layout.tsx` (root) يرسم `<html><body>{children}</body></html>`
+- `app/[locale]/layout.tsx` كذلك يرسم `<html><body>...</body></html>`
+- النتيجة: HTML غير صالح بـ `<html>` متداخل داخل `<body>` — كان واضحاً عند curl للصفحة
+- React 19 hydration يفشل ويعيد بناء الشجرة → فقدان كل state بما فيه قيمة الـ input
+
+**الحل:** root layout يعيد `children` فقط بدون html/body wrapper. Next.js 15 يسمح بذلك عندما child layout يرسم html/body.
+
+### 🟡 إصلاحات أخرى
+
+- **JWT UTF-8 fix:** `btoa()` لا يقبل أحرف خارج Latin1 → onboarding كان يفشل لأي اسم عربي. الحل: `TextEncoder` → bytes → `btoa`.
+- **Theme persistence:** ThemeSwitcher كان يقرأ localStorage لكن لا يطبّق الـ class. الحل: `applyTheme(stored)` صريح في useEffect.
+- **Monthly Flow chart:** إزالة الدخل الوهمي. إعادة التصميم: مصروفات حقيقية فقط + أعلى 3 فئات + مقارنة شهر-شهر.
+- **Phone normalization:** `+966 / 00966 / 966 / 5XXX` تُحوَّل تلقائياً لـ `05XXX`. رسائل توضيحية أثناء الكتابة.
+- **Phone button:** `aria-disabled` بدل `disabled` — احتياط لتجنّب hydration UX issues.
+- **Service Worker cache:** `baity-v1` → `baity-v2` لإجبار تحديث المتصفحات.
+
+### 🌐 النشر العام عبر Tailscale Funnel
+
+```bash
+sudo tailscale serve --bg http://localhost:3001
+sudo tailscale funnel --bg 3001
+```
+
+**الرابط الثابت:** `https://pi-server.tail86cf7.ts.net`
+**Env:** `NEXT_PUBLIC_APP_URL` + `BAITY_HTTPS=true` (Secure cookies).
+
+### ✅ Sentry verified
+
+DSN يعمل 100% — كل event يصل بـ HTTP 200 (تم اختباره بـ curl مباشر + transport interceptor). لو لم تظهر events في dashboard، السبب: Inbound Filters في project settings أو حساب Sentry خاطئ.
+
+### المتبقّي قبل التجربة الفعلية
+
+1. ⚠️ **إنشاء bucket `households` في Supabase Storage** (وإلا رفع الملفات يفشل)
+2. (اختياري) Web Push VAPID keys

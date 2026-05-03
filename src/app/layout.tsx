@@ -1,7 +1,11 @@
 /**
  * Root Layout — "بيتي"
- * هذا الـ layout الجذر يُحدَّد فيه الـ charset والـ viewport فقط.
- * اللغة والاتجاه يُحدَّدان في [locale]/layout.tsx
+ *
+ * يعيد children فقط بدون html/body — لأن [locale]/layout.tsx
+ * يتولّى رسم <html lang dir> و <body> ديناميكياً حسب اللغة.
+ *
+ * Next.js يسمح لـ root layout بإرجاع children بدون html/body
+ * إذا كان هناك layout فرعي يفعل ذلك.
  */
 
 import type { Metadata, Viewport } from 'next';
@@ -34,7 +38,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  viewportFit: 'cover', // لـ iPhone notch
+  viewportFit: 'cover',
   themeColor: '#c9a961',
 };
 
@@ -43,11 +47,5 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    // lang و dir يُحدَّدان في [locale]/layout.tsx ديناميكياً
-    // هنا نضع placeholder فقط — next-intl سيتولّى الباقي
-    <html suppressHydrationWarning>
-      <body className="min-h-screen flex flex-col">{children}</body>
-    </html>
-  );
+  return children;
 }

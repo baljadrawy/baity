@@ -9,7 +9,7 @@
  * يُسجَّل من src/app/[locale]/layout.tsx
  */
 
-const CACHE_NAME = 'baity-v1';
+const CACHE_NAME = 'baity-v2';
 const OFFLINE_URL = '/offline.html';
 
 // الملفات الأساسية التي تُحمَّل مسبقاً

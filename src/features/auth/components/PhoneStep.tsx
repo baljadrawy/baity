@@ -23,14 +23,20 @@ export function PhoneStep({ onSubmit, isLoading, error, botUsername }: PhoneStep
   const [value, setValue] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // تحويل الأرقام الهندية/الفارسية تلقائياً عند الإدخال
-    const converted = convertToWesternDigits(e.target.value).replace(/\D/g, '');
-    setValue(converted.slice(0, 10));
+    // تحويل الأرقام الهندية/الفارسية + إزالة غير الأرقام
+    let digits = convertToWesternDigits(e.target.value).replace(/\D/g, '');
+
+    // تطبيع كود الدولة السعودية: +966 / 00966 / 966 / 5XXXXXXXX → 05XXXXXXXX
+    if (digits.startsWith('00966')) digits = '0' + digits.slice(5);
+    else if (digits.startsWith('966')) digits = '0' + digits.slice(3);
+    else if (digits.length === 9 && digits.startsWith('5')) digits = '0' + digits;
+
+    setValue(digits.slice(0, 10));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (value.length === 10) {
+    if (/^05\d{8}$/.test(value)) {
       await onSubmit(value);
     }
   };
@@ -69,6 +75,13 @@ export function PhoneStep({ onSubmit, isLoading, error, botUsername }: PhoneStep
             {tErrors(error as Parameters<typeof tErrors>[0]) ?? error}
           </p>
         )}
+        {!error && value && !isValid && (
+          <p className="text-sm text-warning text-center" role="status">
+            {!value.startsWith('05')
+              ? t('phoneMustStart')
+              : t('phoneRemaining', { count: 10 - value.length })}
+          </p>
+        )}
         <p className="text-xs text-muted-foreground text-center">
           {t('phoneHint')}
         </p>
@@ -93,13 +106,16 @@ export function PhoneStep({ onSubmit, isLoading, error, botUsername }: PhoneStep
 
       <button
         type="submit"
-        disabled={!isValid || isLoading}
+        disabled={isLoading}
+        aria-disabled={!isValid || isLoading}
         className={[
           'min-h-[52px] w-full rounded-xl font-semibold text-base',
           'bg-primary text-primary-foreground',
-          'transition-opacity disabled:opacity-50',
+          'transition-opacity',
+          // visual cue when invalid، لكن نسمح بالضغط لتفعيل الـ feedback
+          !isValid || isLoading ? 'opacity-50' : '',
           'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-        ].join(' ')}
+        ].filter(Boolean).join(' ')}
       >
         {isLoading ? t('sending') : t('sendOtp')}
       </button>
